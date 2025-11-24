@@ -4,6 +4,7 @@ import { CategoryCard } from "@/components/ui/category-card";
 import { ToolCard } from "@/components/ui/tool-card";
 import { toolCategories, getPopularTools } from "@/lib/tools-data";
 import { CheckCircle2, Zap, Shield, ArrowRight } from "lucide-react";
+import { Reviews } from "@/components/reviews";
 
 export default function Home() {
   const popularTools = getPopularTools();
@@ -160,6 +161,13 @@ export default function Home() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Reviews Section */}
+      <section className="py-20 bg-background">
+        <div className="max-w-4xl mx-auto px-4 md:px-8">
+          <Reviews toolName="office-tools-hub" />
         </div>
       </section>
 
