@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move' | null;
+type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move';
 
 export default function ImageCrop() {
   const [file, setFile] = useState<File | null>(null);
@@ -14,7 +14,7 @@ export default function ImageCrop() {
   const [imageUrl, setImageUrl] = useState<string>("");
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState<ResizeHandle>(null);
+  const [isDragging, setIsDragging] = useState<ResizeHandle | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [cropArea, setCropArea] = useState({ x: 50, y: 50, width: 200, height: 200 });
   const { toast } = useToast();
@@ -161,35 +161,9 @@ export default function ImageCrop() {
     sw: 'nesw-resize',
     w: 'ew-resize',
     move: 'move',
-    null: 'default',
   };
 
   const handles: Array<ResizeHandle> = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
-  const handlePositions: Record<ResizeHandle, string> = {
-    nw: '-4px -4px',
-    n: 'calc(50% - 4px) -4px',
-    ne: '-4px -4px',
-    e: '-4px calc(50% - 4px)',
-    se: '-4px -4px',
-    s: 'calc(50% - 4px) -4px',
-    sw: '-4px -4px',
-    w: '-4px calc(50% - 4px)',
-    move: '0',
-    null: '0',
-  };
-
-  const handleSize: Record<ResizeHandle, string> = {
-    nw: '8px 8px',
-    n: '8px 8px',
-    ne: '8px 8px',
-    e: '8px 16px',
-    se: '8px 8px',
-    s: '8px 8px',
-    sw: '8px 8px',
-    w: '8px 16px',
-    move: '0',
-    null: '0',
-  };
 
   return (
     <ToolWrapper
@@ -247,29 +221,72 @@ export default function ImageCrop() {
                   data-testid="crop-area"
                 >
                   {/* Resize Handles */}
-                  {handles.map((handle) => (
-                    <div
-                      key={handle}
-                      className="absolute bg-primary hover:bg-primary/80 transition-colors"
-                      style={{
-                        ...(handle === 'n' || handle === 's' ? { left: 'calc(50% - 4px)', width: '8px' } : {}),
-                        ...(handle === 'w' || handle === 'e' ? { top: 'calc(50% - 8px)', height: '16px' } : {}),
-                        ...(handle === 'nw' || handle === 'ne' || handle === 'sw' || handle === 'se' ? { width: '8px', height: '8px' } : {}),
-                        ...(handle === 'nw' && { top: '-4px', left: '-4px' }),
-                        ...(handle === 'n' && { top: '-4px' }),
-                        ...(handle === 'ne' && { top: '-4px', right: '-4px' }),
-                        ...(handle === 'e' && { right: '-4px' }),
-                        ...(handle === 'se' && { bottom: '-4px', right: '-4px' }),
-                        ...(handle === 's' && { bottom: '-4px' }),
-                        ...(handle === 'sw' && { bottom: '-4px', left: '-4px' }),
-                        ...(handle === 'w' && { left: '-4px' }),
-                      }}
-                      onMouseDown={(e) => handleMouseDown(e, handle)}
-                      style={{
-                        cursor: `${handle}-resize`,
-                      }}
-                    />
-                  ))}
+                  {handles.map((handle) => {
+                    const baseStyle: React.CSSProperties = {
+                      position: 'absolute',
+                      backgroundColor: 'currentColor',
+                      zIndex: 10,
+                    };
+
+                    if (handle === 'nw') {
+                      baseStyle.width = '8px';
+                      baseStyle.height = '8px';
+                      baseStyle.top = '-4px';
+                      baseStyle.left = '-4px';
+                      baseStyle.cursor = 'nwse-resize';
+                    } else if (handle === 'n') {
+                      baseStyle.width = '8px';
+                      baseStyle.height = '8px';
+                      baseStyle.top = '-4px';
+                      baseStyle.left = 'calc(50% - 4px)';
+                      baseStyle.cursor = 'ns-resize';
+                    } else if (handle === 'ne') {
+                      baseStyle.width = '8px';
+                      baseStyle.height = '8px';
+                      baseStyle.top = '-4px';
+                      baseStyle.right = '-4px';
+                      baseStyle.cursor = 'nesw-resize';
+                    } else if (handle === 'e') {
+                      baseStyle.width = '8px';
+                      baseStyle.height = '16px';
+                      baseStyle.top = 'calc(50% - 8px)';
+                      baseStyle.right = '-4px';
+                      baseStyle.cursor = 'ew-resize';
+                    } else if (handle === 'se') {
+                      baseStyle.width = '8px';
+                      baseStyle.height = '8px';
+                      baseStyle.bottom = '-4px';
+                      baseStyle.right = '-4px';
+                      baseStyle.cursor = 'nwse-resize';
+                    } else if (handle === 's') {
+                      baseStyle.width = '8px';
+                      baseStyle.height = '8px';
+                      baseStyle.bottom = '-4px';
+                      baseStyle.left = 'calc(50% - 4px)';
+                      baseStyle.cursor = 'ns-resize';
+                    } else if (handle === 'sw') {
+                      baseStyle.width = '8px';
+                      baseStyle.height = '8px';
+                      baseStyle.bottom = '-4px';
+                      baseStyle.left = '-4px';
+                      baseStyle.cursor = 'nesw-resize';
+                    } else if (handle === 'w') {
+                      baseStyle.width = '8px';
+                      baseStyle.height = '16px';
+                      baseStyle.top = 'calc(50% - 8px)';
+                      baseStyle.left = '-4px';
+                      baseStyle.cursor = 'ew-resize';
+                    }
+
+                    return (
+                      <div
+                        key={handle}
+                        style={baseStyle}
+                        onMouseDown={(e) => handleMouseDown(e, handle)}
+                        className="hover:opacity-80 transition-opacity"
+                      />
+                    );
+                  })}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
