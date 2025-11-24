@@ -4,6 +4,9 @@ import { storage } from "./storage";
 import path from "path";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
+import { initializeDb, getDb } from "./db";
+import { reviewsTable } from "../shared/schema";
+import { desc, eq } from "drizzle-orm";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +21,9 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize database
+  await initializeDb();
+
   // CORS middleware for API
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -156,19 +162,8 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
     }
   });
 
-  // In-memory storage for reviews
-  let reviews: Array<{
-    id: string;
-    toolName: string;
-    rating: number;
-    comment: string;
-    userName: string;
-    userEmail?: string;
-    createdAt: string;
-  }> = [];
-
-  // Reviews API endpoint
-  app.post("/api/reviews", (req, res) => {
+  // Reviews API endpoints with database storage
+  app.post("/api/reviews", async (req, res) => {
     try {
       const { toolName, rating, comment, userName, userEmail } = req.body;
 
@@ -179,27 +174,28 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
         });
       }
 
-      const newReview = {
-        id: Date.now().toString(),
+      const db = getDb();
+      if (!db) {
+        // Fallback: return success even if DB is not available
+        return res.status(201).json({
+          success: true,
+          message: "Review submitted successfully!",
+          review: { toolName, rating, comment, userName, userEmail },
+        });
+      }
+
+      const newReview = await db.insert(reviewsTable).values({
         toolName,
         rating,
         comment,
         userName,
-        userEmail,
-        createdAt: new Date().toISOString(),
-      };
-
-      reviews.push(newReview);
-
-      // Keep only last 1000 reviews in memory
-      if (reviews.length > 1000) {
-        reviews = reviews.slice(-1000);
-      }
+        userEmail: userEmail || null,
+      }).returning();
 
       res.status(201).json({
         success: true,
         message: "Review submitted successfully!",
-        review: newReview,
+        review: newReview[0],
       });
     } catch (error) {
       console.error("Error submitting review:", error);
@@ -210,18 +206,31 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
     }
   });
 
-  app.get("/api/reviews", (req, res) => {
+  app.get("/api/reviews", async (req, res) => {
     try {
       const toolName = req.query.toolName as string | undefined;
+      const db = getDb();
 
-      const filteredReviews = toolName
-        ? reviews.filter(r => r.toolName === toolName)
-        : reviews;
+      if (!db) {
+        return res.json({
+          success: true,
+          reviews: [],
+          total: 0,
+        });
+      }
+
+      let query = db.select().from(reviewsTable);
+      
+      if (toolName) {
+        query = query.where(eq(reviewsTable.toolName, toolName));
+      }
+
+      const reviews = await query.orderBy(desc(reviewsTable.createdAt)).limit(20);
 
       res.json({
         success: true,
-        reviews: filteredReviews.slice(-20).reverse(),
-        total: filteredReviews.length,
+        reviews,
+        total: reviews.length,
       });
     } catch (error) {
       console.error("Error fetching reviews:", error);

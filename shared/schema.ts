@@ -1,4 +1,16 @@
 import { z } from "zod";
+import { pgTable, text, integer, timestamp, serial } from 'drizzle-orm/pg-core';
+
+// Database table for reviews
+export const reviewsTable = pgTable('reviews', {
+  id: serial('id').primaryKey(),
+  toolName: text('tool_name').notNull(),
+  rating: integer('rating').notNull(),
+  comment: text('comment').notNull(),
+  userName: text('user_name').notNull(),
+  userEmail: text('user_email'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 // Template schema for downloadable templates
 export const templateSchema = z.object({
