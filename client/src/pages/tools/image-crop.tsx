@@ -4,6 +4,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Reviews } from "@/components/reviews";
 
 type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move';
 
@@ -328,6 +329,8 @@ export default function ImageCrop() {
             </Button>
           </div>
         )}
+
+        <Reviews toolName="image-crop" />
       </div>
     </ToolWrapper>
   );
