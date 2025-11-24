@@ -129,3 +129,12 @@ Preferred communication style: Simple, everyday language.
 **Environment Configuration**: 
 - DATABASE_URL optional (app uses in-memory storage by default via MemStorage)
 - PORT environment variable for server port (defaults to 5000)
+
+**Vercel Deployment** (Added November 2025):
+- Serverless functions in `/api` directory for backend routes
+- Frontend builds to `dist/` directory
+- `vercel.json` configuration for routing and SPA support
+- Build command: `npm run vercel-build` (runs `vite build`)
+- All Express routes converted to Vercel serverless function format
+- Environment variables: GMAIL_USER, GMAIL_APP_PASSWORD for contact form
+- See `VERCEL_DEPLOYMENT_GUIDE.md` for complete deployment instructions

@@ -1,0 +1,10 @@
+node_modules
+.git
+.cache
+.local
+server
+*.log
+.env.local
+.env.*.local
+attached_assets
+*.tar.gz
