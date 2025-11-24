@@ -32,6 +32,10 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: "0.0.0.0",
+    ...(process.env.NODE_ENV !== "production" && {
+      allowedHosts: true,
+    }),
     fs: {
       strict: true,
       deny: ["**/.*"],

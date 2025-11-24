@@ -115,13 +115,17 @@ Preferred communication style: Simple, everyday language.
 ### Deployment Architecture
 
 **Development Mode**: 
-- Vite dev server with middleware mode
+- Vite dev server with middleware mode on port 5000
 - HMR (Hot Module Replacement) for instant updates
 - Dynamic index.html serving with cache-busting query parameters
+- Server configured with `host: 0.0.0.0` and `allowedHosts: true` for Replit proxy compatibility (development only)
 
 **Production Mode**:
 - Pre-built static assets served from `dist/public`
 - SPA fallback routing (all routes serve index.html)
 - Bundled server code executed with Node.js
+- Deployment: Autoscale deployment configured with build command `npm run build` and start command `npm start`
 
-**Environment Configuration**: DATABASE_URL required for database connectivity (validated at config load time)
+**Environment Configuration**: 
+- DATABASE_URL optional (app uses in-memory storage by default via MemStorage)
+- PORT environment variable for server port (defaults to 5000)
