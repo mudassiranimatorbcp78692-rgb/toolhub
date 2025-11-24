@@ -1,19 +1,20 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ToolWrapper } from "@/components/tool-wrapper";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move' | null;
+
 export default function ImageCrop() {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>("");
   const [imageUrl, setImageUrl] = useState<string>("");
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
+  const [isDragging, setIsDragging] = useState<ResizeHandle>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [cropArea, setCropArea] = useState({ x: 50, y: 50, width: 200, height: 200 });
   const { toast } = useToast();
@@ -24,7 +25,20 @@ export default function ImageCrop() {
     
     const reader = new FileReader();
     reader.onload = (e) => {
-      setImageUrl(e.target?.result as string);
+      const url = e.target?.result as string;
+      setImageUrl(url);
+      
+      const img = new Image();
+      img.onload = () => {
+        setImageSize({ width: img.width, height: img.height });
+        setCropArea({
+          x: Math.floor(img.width * 0.1),
+          y: Math.floor(img.height * 0.1),
+          width: Math.floor(img.width * 0.6),
+          height: Math.floor(img.height * 0.6),
+        });
+      };
+      img.src = url;
     };
     reader.readAsDataURL(selectedFile);
   };
@@ -77,44 +91,104 @@ export default function ImageCrop() {
     link.click();
   };
 
-  const handleMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize') => {
+  const handleMouseDown = (e: React.MouseEvent, handle: ResizeHandle) => {
     e.preventDefault();
+    setIsDragging(handle);
     setDragStart({ x: e.clientX, y: e.clientY });
-    if (action === 'drag') {
-      setIsDragging(true);
-    } else {
-      setIsResizing(true);
-    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging && !isResizing) return;
+    if (!isDragging) return;
 
     const deltaX = e.clientX - dragStart.x;
     const deltaY = e.clientY - dragStart.y;
 
-    if (isDragging) {
-      setCropArea(prev => ({
-        ...prev,
-        x: Math.max(0, prev.x + deltaX),
-        y: Math.max(0, prev.y + deltaY),
-      }));
-    }
+    setCropArea(prev => {
+      let newArea = { ...prev };
 
-    if (isResizing) {
-      setCropArea(prev => ({
-        ...prev,
-        width: Math.max(50, prev.width + deltaX),
-        height: Math.max(50, prev.height + deltaY),
-      }));
-    }
+      if (isDragging === 'move') {
+        newArea.x = Math.max(0, Math.min(prev.x + deltaX, imageSize.width - prev.width));
+        newArea.y = Math.max(0, Math.min(prev.y + deltaY, imageSize.height - prev.height));
+      } else {
+        // Handle corner and edge resizing
+        if (isDragging.includes('n')) {
+          const newY = prev.y + deltaY;
+          const newHeight = prev.height - deltaY;
+          if (newHeight >= 50 && newY >= 0) {
+            newArea.y = newY;
+            newArea.height = newHeight;
+          }
+        }
+        if (isDragging.includes('s')) {
+          const newHeight = prev.height + deltaY;
+          if (newHeight >= 50 && prev.y + newHeight <= imageSize.height) {
+            newArea.height = newHeight;
+          }
+        }
+        if (isDragging.includes('w')) {
+          const newX = prev.x + deltaX;
+          const newWidth = prev.width - deltaX;
+          if (newWidth >= 50 && newX >= 0) {
+            newArea.x = newX;
+            newArea.width = newWidth;
+          }
+        }
+        if (isDragging.includes('e')) {
+          const newWidth = prev.width + deltaX;
+          if (newWidth >= 50 && prev.x + newWidth <= imageSize.width) {
+            newArea.width = newWidth;
+          }
+        }
+      }
+
+      return newArea;
+    });
 
     setDragStart({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseUp = () => {
-    setIsDragging(false);
-    setIsResizing(false);
+    setIsDragging(null);
+  };
+
+  const cursorMap: Record<ResizeHandle, string> = {
+    nw: 'nwse-resize',
+    n: 'ns-resize',
+    ne: 'nesw-resize',
+    e: 'ew-resize',
+    se: 'nwse-resize',
+    s: 'ns-resize',
+    sw: 'nesw-resize',
+    w: 'ew-resize',
+    move: 'move',
+    null: 'default',
+  };
+
+  const handles: Array<ResizeHandle> = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+  const handlePositions: Record<ResizeHandle, string> = {
+    nw: '-4px -4px',
+    n: 'calc(50% - 4px) -4px',
+    ne: '-4px -4px',
+    e: '-4px calc(50% - 4px)',
+    se: '-4px -4px',
+    s: 'calc(50% - 4px) -4px',
+    sw: '-4px -4px',
+    w: '-4px calc(50% - 4px)',
+    move: '0',
+    null: '0',
+  };
+
+  const handleSize: Record<ResizeHandle, string> = {
+    nw: '8px 8px',
+    n: '8px 8px',
+    ne: '8px 8px',
+    e: '8px 16px',
+    se: '8px 8px',
+    s: '8px 8px',
+    sw: '8px 8px',
+    w: '8px 16px',
+    move: '0',
+    null: '0',
   };
 
   return (
@@ -124,7 +198,7 @@ export default function ImageCrop() {
       category="image"
       howToUse={[
         "Upload your image file",
-        "Adjust the crop area by dragging the selection box",
+        "Drag the crop box to move it or use the handles on edges and corners to resize",
         "Click 'Crop Image' to process",
         "Download the cropped image",
       ]}
@@ -152,26 +226,54 @@ export default function ImageCrop() {
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
               >
-                <img src={imageUrl} alt="Original" className="max-w-full h-auto" />
+                <img 
+                  src={imageUrl} 
+                  alt="Original" 
+                  className="max-w-full h-auto block"
+                  style={{ cursor: isDragging ? `${cursorMap[isDragging]}-resize` : 'default' }}
+                />
+                
+                {/* Crop Box */}
                 <div
-                  className="absolute border-2 border-primary bg-primary/10 cursor-move"
+                  className="absolute border-2 border-primary bg-primary/5"
                   style={{
                     left: `${cropArea.x}px`,
                     top: `${cropArea.y}px`,
                     width: `${cropArea.width}px`,
                     height: `${cropArea.height}px`,
+                    cursor: isDragging === 'move' ? 'grabbing' : 'grab',
                   }}
-                  onMouseDown={(e) => handleMouseDown(e, 'drag')}
+                  onMouseDown={(e) => handleMouseDown(e, 'move')}
                   data-testid="crop-area"
                 >
-                  <div 
-                    className="absolute top-0 right-0 w-4 h-4 bg-primary cursor-nwse-resize" 
-                    onMouseDown={(e) => handleMouseDown(e, 'resize')}
-                  />
+                  {/* Resize Handles */}
+                  {handles.map((handle) => (
+                    <div
+                      key={handle}
+                      className="absolute bg-primary hover:bg-primary/80 transition-colors"
+                      style={{
+                        ...(handle === 'n' || handle === 's' ? { left: 'calc(50% - 4px)', width: '8px' } : {}),
+                        ...(handle === 'w' || handle === 'e' ? { top: 'calc(50% - 8px)', height: '16px' } : {}),
+                        ...(handle === 'nw' || handle === 'ne' || handle === 'sw' || handle === 'se' ? { width: '8px', height: '8px' } : {}),
+                        ...(handle === 'nw' && { top: '-4px', left: '-4px' }),
+                        ...(handle === 'n' && { top: '-4px' }),
+                        ...(handle === 'ne' && { top: '-4px', right: '-4px' }),
+                        ...(handle === 'e' && { right: '-4px' }),
+                        ...(handle === 'se' && { bottom: '-4px', right: '-4px' }),
+                        ...(handle === 's' && { bottom: '-4px' }),
+                        ...(handle === 'sw' && { bottom: '-4px', left: '-4px' }),
+                        ...(handle === 'w' && { left: '-4px' }),
+                      }}
+                      onMouseDown={(e) => handleMouseDown(e, handle)}
+                      style={{
+                        cursor: `${handle}-resize`,
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                Crop area: {cropArea.width}x{cropArea.height}px (Drag to adjust - simplified for demo)
+                Crop area: {Math.round(cropArea.x)}, {Math.round(cropArea.y)} | Size: {Math.round(cropArea.width)}x{Math.round(cropArea.height)}px
               </p>
             </div>
 
