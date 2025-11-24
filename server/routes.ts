@@ -144,6 +144,82 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
     }
   });
 
+  // In-memory storage for reviews
+  let reviews: Array<{
+    id: string;
+    toolName: string;
+    rating: number;
+    comment: string;
+    userName: string;
+    userEmail?: string;
+    createdAt: string;
+  }> = [];
+
+  // Reviews API endpoint
+  app.post("/api/reviews", (req, res) => {
+    try {
+      const { toolName, rating, comment, userName, userEmail } = req.body;
+
+      if (!toolName || !rating || !comment || !userName) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields",
+        });
+      }
+
+      const newReview = {
+        id: Date.now().toString(),
+        toolName,
+        rating,
+        comment,
+        userName,
+        userEmail,
+        createdAt: new Date().toISOString(),
+      };
+
+      reviews.push(newReview);
+
+      // Keep only last 1000 reviews in memory
+      if (reviews.length > 1000) {
+        reviews = reviews.slice(-1000);
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Review submitted successfully!",
+        review: newReview,
+      });
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to submit review",
+      });
+    }
+  });
+
+  app.get("/api/reviews", (req, res) => {
+    try {
+      const toolName = req.query.toolName as string | undefined;
+
+      const filteredReviews = toolName
+        ? reviews.filter(r => r.toolName === toolName)
+        : reviews;
+
+      res.json({
+        success: true,
+        reviews: filteredReviews.slice(-20).reverse(),
+        total: filteredReviews.length,
+      });
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch reviews",
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
