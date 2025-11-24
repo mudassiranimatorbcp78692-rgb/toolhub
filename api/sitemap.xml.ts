@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  const baseUrl = "https://officetoolshub.com";
+  const baseUrl = "https://officetoolshub.vercel.app";
   const tools = [
     "pdf-to-jpg", "jpg-to-pdf", "pdf-merge", "pdf-split", "pdf-compress", 
     "pdf-rotate", "pdf-protect", "image-compress", "image-resize", "image-crop",
