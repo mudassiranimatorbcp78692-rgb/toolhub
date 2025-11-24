@@ -112,6 +112,20 @@ Preferred communication style: Simple, everyday language.
 
 **Design System Reference**: Material Design principles combined with modern SaaS tool patterns (documented in `design_guidelines.md`)
 
+### Reviews System
+
+**Features:**
+- Users can submit 5-star ratings and comments for any tool
+- Reviews are displayed on tool pages with newest first
+- Max 500 characters per review
+- Name and email fields (email optional)
+- All reviews stored in API memory (can be upgraded to persistent DB)
+
+**Implementation:**
+- API endpoint: `/api/reviews` (POST to submit, GET to fetch)
+- React component: `ReviewsComponent` - drop into tool pages
+- Schema validation with Zod for data integrity
+
 ### Deployment Architecture
 
 **Development Mode**: 

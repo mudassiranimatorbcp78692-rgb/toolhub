@@ -78,3 +78,16 @@ export type PercentageCalculator = z.infer<typeof percentageCalculatorSchema>;
 export type LoanCalculator = z.infer<typeof loanCalculatorSchema>;
 export type GpaCalculator = z.infer<typeof gpaCalculatorSchema>;
 export type ZakatCalculator = z.infer<typeof zakatCalculatorSchema>;
+
+// Reviews schema
+export const reviewSchema = z.object({
+  id: z.string().optional(),
+  toolName: z.string(),
+  rating: z.number().min(1).max(5),
+  comment: z.string().min(1).max(500),
+  userName: z.string().min(1).max(100),
+  userEmail: z.string().email().optional(),
+  createdAt: z.date().optional(),
+});
+
+export type Review = z.infer<typeof reviewSchema>;
