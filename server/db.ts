@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/neon-http';
-import { Client } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 import * as schema from '../shared/schema';
 
 let db: ReturnType<typeof drizzle> | null = null;
@@ -11,11 +11,8 @@ export async function initializeDb() {
   }
 
   try {
-    const client = new Client({
-      connectionString: process.env.DATABASE_URL,
-    });
-    
-    db = drizzle(client, { schema });
+    const sql = neon(process.env.DATABASE_URL);
+    db = drizzle(sql, { schema });
     console.log('Database initialized successfully');
     return db;
   } catch (error) {
