@@ -1,0 +1,80 @@
+import { z } from "zod";
+
+// Template schema for downloadable templates
+export const templateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.enum(['resume', 'invoice', 'salary-slip', 'offer-letter', 'office-forms']),
+  description: z.string(),
+  thumbnailUrl: z.string(),
+  downloadUrl: z.string(),
+});
+
+export type Template = z.infer<typeof templateSchema>;
+
+// Tool category schema
+export const toolCategorySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  icon: z.string(),
+  toolCount: z.number(),
+  path: z.string(),
+});
+
+export type ToolCategory = z.infer<typeof toolCategorySchema>;
+
+// Individual tool schema
+export const toolSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  category: z.string(),
+  path: z.string(),
+  icon: z.string(),
+  isPro: z.boolean().default(false),
+});
+
+export type Tool = z.infer<typeof toolSchema>;
+
+// File processing schemas
+export const fileProcessingSchema = z.object({
+  fileName: z.string(),
+  fileSize: z.number(),
+  fileType: z.string(),
+  processedAt: z.date().optional(),
+});
+
+export type FileProcessing = z.infer<typeof fileProcessingSchema>;
+
+// Calculator input schemas
+export const percentageCalculatorSchema = z.object({
+  value: z.number(),
+  percentage: z.number(),
+  operation: z.enum(['find', 'increase', 'decrease']),
+});
+
+export const loanCalculatorSchema = z.object({
+  principal: z.number().positive(),
+  interestRate: z.number().min(0).max(100),
+  termYears: z.number().positive(),
+});
+
+export const gpaCalculatorSchema = z.object({
+  courses: z.array(z.object({
+    credits: z.number().positive(),
+    grade: z.number().min(0).max(4),
+  })),
+});
+
+export const zakatCalculatorSchema = z.object({
+  gold: z.number().min(0),
+  silver: z.number().min(0),
+  cash: z.number().min(0),
+  investments: z.number().min(0),
+});
+
+export type PercentageCalculator = z.infer<typeof percentageCalculatorSchema>;
+export type LoanCalculator = z.infer<typeof loanCalculatorSchema>;
+export type GpaCalculator = z.infer<typeof gpaCalculatorSchema>;
+export type ZakatCalculator = z.infer<typeof zakatCalculatorSchema>;
