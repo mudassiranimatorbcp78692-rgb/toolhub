@@ -11,7 +11,10 @@ export default function ImageCrop() {
   const [croppedImageUrl, setCroppedImageUrl] = useState<string>("");
   const [imageUrl, setImageUrl] = useState<string>("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [cropArea, setCropArea] = useState({ x: 50, y: 50, width: 200, height: 200 });
   const { toast } = useToast();
 
@@ -74,6 +77,46 @@ export default function ImageCrop() {
     link.click();
   };
 
+  const handleMouseDown = (e: React.MouseEvent, action: 'drag' | 'resize') => {
+    e.preventDefault();
+    setDragStart({ x: e.clientX, y: e.clientY });
+    if (action === 'drag') {
+      setIsDragging(true);
+    } else {
+      setIsResizing(true);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging && !isResizing) return;
+
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+
+    if (isDragging) {
+      setCropArea(prev => ({
+        ...prev,
+        x: Math.max(0, prev.x + deltaX),
+        y: Math.max(0, prev.y + deltaY),
+      }));
+    }
+
+    if (isResizing) {
+      setCropArea(prev => ({
+        ...prev,
+        width: Math.max(50, prev.width + deltaX),
+        height: Math.max(50, prev.height + deltaY),
+      }));
+    }
+
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setIsResizing(false);
+  };
+
   return (
     <ToolWrapper
       toolName="Image Cropper"
@@ -102,7 +145,13 @@ export default function ImageCrop() {
         {imageUrl && !croppedImageUrl && (
           <div className="space-y-4">
             <div className="border rounded-lg p-4 bg-muted/30">
-              <div className="relative inline-block max-w-full">
+              <div 
+                ref={containerRef}
+                className="relative inline-block max-w-full"
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
                 <img src={imageUrl} alt="Original" className="max-w-full h-auto" />
                 <div
                   className="absolute border-2 border-primary bg-primary/10 cursor-move"
@@ -112,10 +161,13 @@ export default function ImageCrop() {
                     width: `${cropArea.width}px`,
                     height: `${cropArea.height}px`,
                   }}
-                  onMouseDown={() => setIsDragging(true)}
+                  onMouseDown={(e) => handleMouseDown(e, 'drag')}
                   data-testid="crop-area"
                 >
-                  <div className="absolute top-0 right-0 w-4 h-4 bg-primary cursor-nwse-resize" />
+                  <div 
+                    className="absolute top-0 right-0 w-4 h-4 bg-primary cursor-nwse-resize" 
+                    onMouseDown={(e) => handleMouseDown(e, 'resize')}
+                  />
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
