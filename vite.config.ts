@@ -35,6 +35,7 @@ export default defineConfig({
     host: "0.0.0.0",
     ...(process.env.NODE_ENV !== "production" && {
       allowedHosts: true,
+      middlewareMode: true,
     }),
     fs: {
       strict: true,
