@@ -18,6 +18,44 @@ interface Review {
   createdAt: string;
 }
 
+// Simple MD5 hash for Gravatar
+const md5Hash = (str: string): string => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16).padStart(32, '0');
+};
+
+// Get Gravatar URL
+const getGravatarUrl = (email: string, size: number = 40) => {
+  const trimmedEmail = email.toLowerCase().trim();
+  const hash = md5Hash(trimmedEmail);
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=retro`;
+};
+
+// Generate avatar from initials with SVG
+const getInitialAvatar = (name: string): string => {
+  const initials = name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+  
+  const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const bgColor = colors[Math.abs(hash) % colors.length];
+  
+  const svg = `<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="${bgColor}"/><text x="50%" y="50%" font-size="16" font-weight="bold" fill="white" text-anchor="middle" dy=".3em" font-family="system-ui">${initials}</text></svg>`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
 export function Reviews({ toolName }: ReviewsProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
@@ -107,7 +145,7 @@ export function Reviews({ toolName }: ReviewsProps) {
         <h3 className="text-2xl font-semibold mb-6">Reviews & Ratings</h3>
 
         {/* Submit Review Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 mb-8 p-4 bg-muted/30 rounded-lg">
+        <form onSubmit={handleSubmit} className="space-y-4 mb-8 p-4 bg-muted/50 rounded-lg border border-border">
           <div className="space-y-2">
             <label className="text-sm font-medium">Your Name *</label>
             <input
@@ -115,7 +153,7 @@ export function Reviews({ toolName }: ReviewsProps) {
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full px-3 py-2 border rounded-md text-sm"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               disabled={submitting}
             />
           </div>
@@ -127,7 +165,7 @@ export function Reviews({ toolName }: ReviewsProps) {
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-3 py-2 border rounded-md text-sm"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               disabled={submitting}
             />
           </div>
@@ -148,7 +186,7 @@ export function Reviews({ toolName }: ReviewsProps) {
                       "transition-colors",
                       star <= rating
                         ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
+                        : "text-muted-foreground"
                     )}
                   />
                 </button>
@@ -162,7 +200,7 @@ export function Reviews({ toolName }: ReviewsProps) {
               value={comment}
               onChange={(e) => setComment(e.target.value.slice(0, 500))}
               placeholder="Share your experience with this tool... (max 500 characters)"
-              className="w-full px-3 py-2 border rounded-md text-sm min-h-[100px]"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm min-h-[100px] bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               disabled={submitting}
             />
             <p className="text-xs text-muted-foreground">
@@ -197,34 +235,49 @@ export function Reviews({ toolName }: ReviewsProps) {
           {loading ? (
             <p className="text-muted-foreground">Loading reviews...</p>
           ) : reviews.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {reviews.map((review) => (
                 <div
                   key={review.id}
-                  className="p-4 border rounded-lg bg-card space-y-2"
+                  className="p-4 border border-border rounded-lg bg-muted/30 space-y-3"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium">{review.userName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </p>
+                  {/* Review Header with Avatar */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <img
+                        src={review.userEmail ? getGravatarUrl(review.userEmail) : getInitialAvatar(review.userName)}
+                        alt={review.userName}
+                        className="w-10 h-10 rounded-full object-cover border border-border"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = getInitialAvatar(review.userName);
+                        }}
+                      />
                     </div>
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={16}
-                          className={
-                            i < review.rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
-                          }
-                        />
-                      ))}
+                    <div className="flex-1 flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm break-words">{review.userName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-0.5 flex-shrink-0">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            size={14}
+                            className={
+                              i < review.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-muted-foreground"
+                            }
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <p className="text-sm text-foreground">{review.comment}</p>
+
+                  {/* Review Comment */}
+                  <p className="text-sm text-foreground leading-relaxed">{review.comment}</p>
                 </div>
               ))}
             </div>
