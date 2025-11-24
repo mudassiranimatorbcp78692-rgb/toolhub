@@ -282,7 +282,10 @@ export default function ImageCrop() {
                       <div
                         key={handle}
                         style={baseStyle}
-                        onMouseDown={(e) => handleMouseDown(e, handle)}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          handleMouseDown(e, handle);
+                        }}
                         className="hover:opacity-80 transition-opacity"
                       />
                     );
