@@ -1,42 +1,43 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Set CORS and content-type headers FIRST
+  // Set headers FIRST - always JSON
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
 
-  // Handle OPTIONS requests
   if (req.method === 'OPTIONS') {
-    res.status(200).json({ success: true });
-    return;
+    return res.status(200).json({ success: true });
   }
 
   try {
-    // Check if DATABASE_URL is available
+    // Verify database URL exists
     if (!process.env.DATABASE_URL) {
-      console.warn('DATABASE_URL not configured');
-      return res.json({
-        success: true,
+      console.error('DATABASE_URL not configured');
+      return res.status(503).json({
+        success: false,
+        message: 'Database not configured',
         reviews: [],
         total: 0,
       });
     }
 
-    // Lazy load database dependencies
+    // Lazy load Drizzle dependencies
     const { drizzle } = await import('drizzle-orm/neon-http');
     const { neon } = await import('@neondatabase/serverless');
     const { reviewsTable } = await import('../shared/schema');
     const { desc, eq } = await import('drizzle-orm');
 
-    // Initialize database
     const sql = neon(process.env.DATABASE_URL);
     const db = drizzle(sql, { schema: { reviewsTable } });
 
+    // GET - Fetch reviews
     if (req.method === 'GET') {
       try {
         const toolName = req.query.toolName as string | undefined;
+        console.log(`Fetching reviews for tool: ${toolName || 'all'}`);
 
         const reviews = toolName
           ? await db
@@ -44,21 +45,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .from(reviewsTable)
               .where(eq(reviewsTable.toolName, toolName))
               .orderBy(desc(reviewsTable.createdAt))
-              .limit(20)
+              .limit(100)
           : await db
               .select()
               .from(reviewsTable)
               .orderBy(desc(reviewsTable.createdAt))
-              .limit(20);
+              .limit(100);
 
-        return res.json({
+        console.log(`Returned ${reviews.length} reviews`);
+        
+        return res.status(200).json({
           success: true,
-          reviews: reviews || [],
-          total: (reviews || []).length,
+          reviews: reviews.map(r => ({
+            id: r.id,
+            toolName: r.toolName,
+            rating: r.rating,
+            comment: r.comment,
+            userName: r.userName,
+            userEmail: r.userEmail || null,
+            createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+          })) || [],
+          total: reviews.length,
         });
       } catch (err) {
-        console.error('GET /api/reviews error:', err);
-        return res.json({
+        console.error('GET reviews error:', err);
+        return res.status(200).json({
           success: true,
           reviews: [],
           total: 0,
@@ -66,54 +77,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // POST - Submit review
     if (req.method === 'POST') {
       try {
         const { toolName, rating, comment, userName, userEmail } = req.body;
+        console.log(`Submitting review for ${toolName} by ${userName}`);
 
-        // Validate input
-        if (!toolName || !rating || !comment || !userName) {
+        // Validate
+        if (!toolName || rating === undefined || !comment || !userName) {
           return res.status(400).json({
             success: false,
-            message: 'Missing required fields: toolName, rating, comment, userName',
+            message: 'Missing required fields',
           });
         }
 
-        // Insert review
+        // Insert
         const newReview = await db
           .insert(reviewsTable)
           .values({
-            toolName,
+            toolName: String(toolName),
             rating: parseInt(String(rating)),
-            comment,
-            userName,
+            comment: String(comment),
+            userName: String(userName),
             userEmail: userEmail ? String(userEmail) : null,
+            createdAt: new Date().toISOString(),
           })
           .returning();
 
+        const review = newReview[0];
+        console.log(`Review saved with ID: ${review?.id}`);
+
         return res.status(201).json({
           success: true,
-          message: 'Review submitted successfully!',
-          review: newReview[0] || { toolName, rating, comment, userName, userEmail },
+          message: 'Review submitted successfully',
+          review: {
+            id: review?.id,
+            toolName: review?.toolName,
+            rating: review?.rating,
+            comment: review?.comment,
+            userName: review?.userName,
+            userEmail: review?.userEmail || null,
+            createdAt: review?.createdAt ? new Date(review.createdAt).toISOString() : new Date().toISOString(),
+          },
         });
       } catch (err) {
-        console.error('POST /api/reviews error:', err);
+        console.error('POST review error:', err);
         return res.status(500).json({
           success: false,
-          message: 'Failed to save review to database',
+          message: err instanceof Error ? err.message : 'Failed to save review',
         });
       }
     }
 
-    // Method not allowed
-    return res.status(405).json({
-      success: false,
-      message: 'Method not allowed',
-    });
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   } catch (error) {
-    console.error('Unhandled error in /api/reviews:', error);
+    console.error('Unhandled error:', error);
     return res.status(500).json({
       success: false,
-      message: error instanceof Error ? error.message : 'Internal server error',
+      message: error instanceof Error ? error.message : 'Server error',
     });
   }
 }

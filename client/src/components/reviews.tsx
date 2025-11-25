@@ -109,40 +109,43 @@ export function Reviews({ toolName }: ReviewsProps) {
           rating,
           comment,
           userName,
-          userEmail: userEmail || undefined,
+          userEmail: userEmail || null,
         }),
       });
 
       const data = await response.json();
-      if (data.success) {
+      console.log("Submit response:", data);
+      
+      if (data.success && data.review) {
         toast({
           title: "Thank you!",
           description: "Your review has been submitted successfully.",
         });
         
-        // Optimistically add the new review to the list
-        if (data.review) {
-          const newReview: Review = {
-            id: data.review.id,
-            toolName: data.review.toolName,
-            rating: data.review.rating,
-            comment: data.review.comment,
-            userName: data.review.userName,
-            userEmail: data.review.userEmail,
-            createdAt: data.review.createdAt || new Date().toISOString(),
-          };
-          setReviews([newReview, ...reviews]);
-        }
+        // Create properly typed review for UI
+        const newReview: Review = {
+          id: data.review.id || Date.now(),
+          toolName: data.review.toolName || toolName,
+          rating: data.review.rating || rating,
+          comment: data.review.comment || comment,
+          userName: data.review.userName || userName,
+          userEmail: data.review.userEmail || null,
+          createdAt: data.review.createdAt ? new Date(data.review.createdAt).toISOString() : new Date().toISOString(),
+        };
         
+        // Add to top of list immediately
+        setReviews(prev => [newReview, ...prev]);
+        
+        // Clear form
         setComment("");
         setUserName("");
         setUserEmail("");
         setRating(5);
         
-        // Also fetch to sync with server
-        setTimeout(() => fetchReviews(), 500);
+        // Refetch after short delay to ensure DB sync
+        setTimeout(() => fetchReviews(), 800);
       } else {
-        throw new Error(data.message);
+        throw new Error(data.message || "Failed to submit review");
       }
     } catch (error) {
       console.error("Submit error:", error);
