@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { pgTable, text, integer, timestamp, serial } from 'drizzle-orm/pg-core';
+import { sql as sqlFn } from 'drizzle-orm';
 
 // Define reviewsTable inline for Vercel
 const reviewsTable = pgTable('reviews', {
@@ -36,19 +37,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Lazy load Drizzle dependencies
-    const { drizzle } = await import('drizzle-orm/neon-http');
-    const { neon } = await import('@neondatabase/serverless');
+    // Use postgres driver instead of neon for better compatibility
+    const { drizzle } = await import('drizzle-orm/postgres-js');
+    const postgres = await import('postgres');
     const { desc, eq } = await import('drizzle-orm');
 
-    const sql = neon(process.env.DATABASE_URL);
-    const db = drizzle(sql, { schema: { reviewsTable } });
+    const client = postgres(process.env.DATABASE_URL);
+    const db = drizzle(client, { schema: { reviewsTable } });
 
     // GET - Fetch reviews
     if (req.method === 'GET') {
       try {
         const toolName = req.query.toolName as string | undefined;
-        console.log(`Fetching reviews for tool: ${toolName || 'all'}`);
 
         const reviews = toolName
           ? await db
@@ -63,29 +63,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .orderBy(desc(reviewsTable.createdAt))
               .limit(100);
 
-        console.log(`Returned ${reviews.length} reviews`);
+        await client.end();
         
         return res.status(200).json({
           success: true,
-          reviews: reviews.map(r => {
-            let createdAtStr = new Date().toISOString();
-            if (r.createdAt) {
-              createdAtStr = r.createdAt instanceof Date ? r.createdAt.toISOString() : new Date(r.createdAt).toISOString();
-            }
-            return {
-              id: r.id,
-              toolName: r.toolName,
-              rating: r.rating,
-              comment: r.comment,
-              userName: r.userName,
-              userEmail: r.userEmail || null,
-              createdAt: createdAtStr,
-            };
-          }) || [],
+          reviews: reviews.map(r => ({
+            id: r.id,
+            toolName: r.toolName,
+            rating: r.rating,
+            comment: r.comment,
+            userName: r.userName,
+            userEmail: r.userEmail || null,
+            createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : new Date(r.createdAt).toISOString(),
+          })) || [],
           total: reviews.length,
         });
       } catch (err) {
         console.error('GET reviews error:', err);
+        await client.end();
         return res.status(200).json({
           success: true,
           reviews: [],
@@ -98,17 +93,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST') {
       try {
         const { toolName, rating, comment, userName, userEmail } = req.body;
-        console.log(`Submitting review for ${toolName} by ${userName}`);
 
-        // Validate
         if (!toolName || rating === undefined || !comment || !userName) {
+          await client.end();
           return res.status(400).json({
             success: false,
             message: 'Missing required fields',
           });
         }
 
-        // Insert - let database set createdAt via defaultNow()
         const newReview = await db
           .insert(reviewsTable)
           .values({
@@ -120,13 +113,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           })
           .returning();
 
+        await client.end();
         const review = newReview[0];
-        console.log(`Review saved with ID: ${review?.id}`);
-
-        let createdAtStr = new Date().toISOString();
-        if (review?.createdAt) {
-          createdAtStr = review.createdAt instanceof Date ? review.createdAt.toISOString() : new Date(review.createdAt).toISOString();
-        }
 
         return res.status(201).json({
           success: true,
@@ -138,11 +126,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             comment: review.comment,
             userName: review.userName,
             userEmail: review.userEmail || null,
-            createdAt: createdAtStr,
+            createdAt: review.createdAt instanceof Date ? review.createdAt.toISOString() : new Date(review.createdAt).toISOString(),
           } : null,
         });
       } catch (err) {
         console.error('POST review error:', err);
+        await client.end();
         return res.status(500).json({
           success: false,
           message: err instanceof Error ? err.message : 'Failed to save review',
@@ -150,6 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    await client.end();
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   } catch (error) {
     console.error('Unhandled error:', error);
