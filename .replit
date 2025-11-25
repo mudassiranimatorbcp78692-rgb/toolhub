@@ -50,3 +50,8 @@ externalPort = 3002
 deploymentTarget = "autoscale"
 run = ["npm", "start"]
 build = ["npm", "run", "build"]
+
+[userenv]
+
+[userenv.shared]
+DATABASE_URL = "postgresql://postgres:@MudassirAhmed11@db.uceyhypbcvqqqalfiuxh.supabase.co:5432/postgres"
