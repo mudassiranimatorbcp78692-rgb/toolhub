@@ -119,15 +119,33 @@ export function Reviews({ toolName }: ReviewsProps) {
           title: "Thank you!",
           description: "Your review has been submitted successfully.",
         });
+        
+        // Optimistically add the new review to the list
+        if (data.review) {
+          const newReview: Review = {
+            id: data.review.id,
+            toolName: data.review.toolName,
+            rating: data.review.rating,
+            comment: data.review.comment,
+            userName: data.review.userName,
+            userEmail: data.review.userEmail,
+            createdAt: data.review.createdAt || new Date().toISOString(),
+          };
+          setReviews([newReview, ...reviews]);
+        }
+        
         setComment("");
         setUserName("");
         setUserEmail("");
         setRating(5);
-        fetchReviews();
+        
+        // Also fetch to sync with server
+        setTimeout(() => fetchReviews(), 500);
       } else {
         throw new Error(data.message);
       }
     } catch (error) {
+      console.error("Submit error:", error);
       toast({
         title: "Error",
         description:
