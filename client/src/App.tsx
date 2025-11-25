@@ -15,6 +15,7 @@ import Pricing from "@/pages/pricing";
 import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
+import AdminReviews from "@/pages/admin-reviews";
 import NotFound from "@/pages/not-found";
 
 // Tool Pages
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
+      <Route path="/admin/reviews" component={AdminReviews} />
 
       {/* Specific Tool Pages */}
       <Route path="/tool/pdf-to-jpg" component={PdfToJpg} />
