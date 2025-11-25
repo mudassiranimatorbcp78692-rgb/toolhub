@@ -56,15 +56,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         return res.status(200).json({
           success: true,
-          reviews: reviews.map(r => ({
-            id: r.id,
-            toolName: r.toolName,
-            rating: r.rating,
-            comment: r.comment,
-            userName: r.userName,
-            userEmail: r.userEmail || null,
-            createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : new Date(r.createdAt).toISOString(),
-          })) || [],
+          reviews: reviews.map(r => {
+            let createdAtStr = new Date().toISOString();
+            if (r.createdAt) {
+              createdAtStr = r.createdAt instanceof Date ? r.createdAt.toISOString() : new Date(r.createdAt).toISOString();
+            }
+            return {
+              id: r.id,
+              toolName: r.toolName,
+              rating: r.rating,
+              comment: r.comment,
+              userName: r.userName,
+              userEmail: r.userEmail || null,
+              createdAt: createdAtStr,
+            };
+          }) || [],
           total: reviews.length,
         });
       } catch (err) {
@@ -106,6 +112,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const review = newReview[0];
         console.log(`Review saved with ID: ${review?.id}`);
 
+        let createdAtStr = new Date().toISOString();
+        if (review?.createdAt) {
+          createdAtStr = review.createdAt instanceof Date ? review.createdAt.toISOString() : new Date(review.createdAt).toISOString();
+        }
+
         return res.status(201).json({
           success: true,
           message: 'Review submitted successfully',
@@ -116,7 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             comment: review.comment,
             userName: review.userName,
             userEmail: review.userEmail || null,
-            createdAt: review.createdAt instanceof Date ? review.createdAt.toISOString() : new Date(review.createdAt).toISOString(),
+            createdAt: createdAtStr,
           } : null,
         });
       } catch (err) {
