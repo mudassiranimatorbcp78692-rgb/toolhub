@@ -1,8 +1,9 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import * as schema from '../shared/schema';
 
 let db: ReturnType<typeof drizzle> | null = null;
+let client: postgres.Sql | null = null;
 
 export async function initializeDb() {
   if (!process.env.DATABASE_URL) {
@@ -11,8 +12,8 @@ export async function initializeDb() {
   }
 
   try {
-    const sql = neon(process.env.DATABASE_URL);
-    db = drizzle(sql, { schema });
+    client = postgres(process.env.DATABASE_URL);
+    db = drizzle(client, { schema });
     console.log('Database initialized successfully');
     return db;
   } catch (error) {
