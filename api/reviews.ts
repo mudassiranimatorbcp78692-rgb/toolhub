@@ -63,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             comment: r.comment,
             userName: r.userName,
             userEmail: r.userEmail || null,
-            createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+            createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : new Date(r.createdAt).toISOString(),
           })) || [],
           total: reviews.length,
         });
@@ -91,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
         }
 
-        // Insert
+        // Insert - let database set createdAt via defaultNow()
         const newReview = await db
           .insert(reviewsTable)
           .values({
@@ -100,7 +100,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             comment: String(comment),
             userName: String(userName),
             userEmail: userEmail ? String(userEmail) : null,
-            createdAt: new Date().toISOString(),
           })
           .returning();
 
@@ -110,15 +109,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(201).json({
           success: true,
           message: 'Review submitted successfully',
-          review: {
-            id: review?.id,
-            toolName: review?.toolName,
-            rating: review?.rating,
-            comment: review?.comment,
-            userName: review?.userName,
-            userEmail: review?.userEmail || null,
-            createdAt: review?.createdAt ? new Date(review.createdAt).toISOString() : new Date().toISOString(),
-          },
+          review: review ? {
+            id: review.id,
+            toolName: review.toolName,
+            rating: review.rating,
+            comment: review.comment,
+            userName: review.userName,
+            userEmail: review.userEmail || null,
+            createdAt: review.createdAt instanceof Date ? review.createdAt.toISOString() : new Date(review.createdAt).toISOString(),
+          } : null,
         });
       } catch (err) {
         console.error('POST review error:', err);
