@@ -78,12 +78,7 @@ export function Reviews({ toolName }: ReviewsProps) {
       );
       const data = await response.json();
       if (data.success) {
-        // Sort with pinned reviews first
-        const sortedReviews = data.reviews.sort((a: any, b: any) => {
-          if (a.isPinned === b.isPinned) return 0;
-          return a.isPinned ? -1 : 1;
-        });
-        setReviews(sortedReviews);
+        setReviews(data.reviews);
       }
     } catch (error) {
       console.error("Failed to fetch reviews:", error);

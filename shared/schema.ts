@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, integer, timestamp, serial, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, serial } from 'drizzle-orm/pg-core';
 
 // Database table for reviews
 export const reviewsTable = pgTable('reviews', {
@@ -10,7 +10,6 @@ export const reviewsTable = pgTable('reviews', {
   userName: text('user_name').notNull(),
   userEmail: text('user_email'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  isPinned: boolean('is_pinned').default(false).notNull(),
 });
 
 // Template schema for downloadable templates
@@ -101,7 +100,6 @@ export const reviewSchema = z.object({
   userName: z.string().min(1).max(100),
   userEmail: z.string().email().optional(),
   createdAt: z.date().optional(),
-  isPinned: z.boolean().optional(),
 });
 
 export type Review = z.infer<typeof reviewSchema>;
