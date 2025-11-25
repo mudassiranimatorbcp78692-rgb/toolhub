@@ -1,4 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { pgTable, text, integer, timestamp, serial } from 'drizzle-orm/pg-core';
+
+// Define reviewsTable inline for Vercel
+const reviewsTable = pgTable('reviews', {
+  id: serial('id').primaryKey(),
+  toolName: text('tool_name').notNull(),
+  rating: integer('rating').notNull(),
+  comment: text('comment').notNull(),
+  userName: text('user_name').notNull(),
+  userEmail: text('user_email'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set headers FIRST - always JSON
@@ -27,7 +39,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Lazy load Drizzle dependencies
     const { drizzle } = await import('drizzle-orm/neon-http');
     const { neon } = await import('@neondatabase/serverless');
-    const { reviewsTable } = await import('../shared/schema');
     const { desc, eq } = await import('drizzle-orm');
 
     const sql = neon(process.env.DATABASE_URL);
