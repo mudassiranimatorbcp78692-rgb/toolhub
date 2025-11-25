@@ -39,7 +39,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Use postgres driver instead of neon for better compatibility
     const { drizzle } = await import('drizzle-orm/postgres-js');
-    const postgres = await import('postgres');
+    const postgresModule = await import('postgres');
+    const postgres = postgresModule.default;
     const { desc, eq } = await import('drizzle-orm');
 
     const client = postgres(process.env.DATABASE_URL);
