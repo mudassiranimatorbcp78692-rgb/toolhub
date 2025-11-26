@@ -35,6 +35,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 35559
+externalPort = 3003
+
+[[ports]]
 localPort = 36703
 externalPort = 3001
 
@@ -54,4 +58,4 @@ build = ["npm", "run", "build"]
 [userenv]
 
 [userenv.shared]
-DATABASE_URL = "postgresql://postgres:%40MudassirAhmed11@db.uceyhypbcvqqqalfiuxh.supabase.co:5432/postgres"
+DATABASE_URL = "postgresql://neondb_owner:npg_pzImeXK27URT@ep-raspy-silence-ahb2jnyg-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
