@@ -1,10 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  // Get domain from environment or request headers
-  const host = req.headers.host || "officetoolshub.com";
+  // Get domain from request headers - this will be the actual domain the request came from
+  const host = req.headers.host || req.headers['x-forwarded-host'] || "officetoolshub.vercel.app";
   const protocol = req.headers['x-forwarded-proto'] || "https";
   const baseUrl = `${protocol}://${host}`;
+  
+  // Ensure cache is disabled so Google Search Console gets fresh URLs
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   const tools = [
     "pdf-to-jpg", "jpg-to-pdf", "pdf-merge", "pdf-split", "pdf-compress", 
     "pdf-rotate", "pdf-protect", "image-compress", "image-resize", "image-crop",
