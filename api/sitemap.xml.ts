@@ -1,7 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  const baseUrl = "https://officetoolshub.vercel.app";
+  // Get domain from environment or request headers
+  const host = req.headers.host || "officetoolshub.com";
+  const protocol = req.headers['x-forwarded-proto'] || "https";
+  const baseUrl = `${protocol}://${host}`;
   const tools = [
     "pdf-to-jpg", "jpg-to-pdf", "pdf-merge", "pdf-split", "pdf-compress", 
     "pdf-rotate", "pdf-protect", "image-compress", "image-resize", "image-crop",
