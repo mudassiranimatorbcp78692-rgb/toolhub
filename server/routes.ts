@@ -97,10 +97,13 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
         console.log("Note: Orders table may not exist yet, continuing with checkout");
       }
 
-      // Generate 2Checkout checkout URL
-      // Using 2Checkout's hosted checkout page
-      const productId = paymentMethod === "visa" ? "card_checkout" : "payoneer_checkout";
-      const checkoutUrl = `https://2checkout.com/checkout/purchase?merchant_id=YOUR_MERCHANT_ID&product_id=${productId}&ref_id=${checkoutId}&email=${encodeURIComponent(email)}&customer_name=${encodeURIComponent(name || "Customer")}`;
+      // Generate 2Checkout checkout URL using merchant ID from env
+      const merchantId = process.env.CHECKOUT_MERCHANT_ID;
+      if (!merchantId) {
+        return res.status(500).json({ error: "Merchant ID not configured" });
+      }
+
+      const checkoutUrl = `https://2checkout.com/checkout/purchase?merchant=${merchantId}&ref=${checkoutId}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name || "Customer")}`;
 
       res.json({
         success: true,

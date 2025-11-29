@@ -47,6 +47,10 @@ localPort = 40991
 externalPort = 3000
 
 [[ports]]
+localPort = 41713
+externalPort = 4200
+
+[[ports]]
 localPort = 43977
 externalPort = 3002
 
@@ -59,3 +63,4 @@ build = ["npm", "run", "build"]
 
 [userenv.shared]
 DATABASE_URL = "postgresql://neondb_owner:npg_pzImeXK27URT@ep-raspy-silence-ahb2jnyg-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+CHECKOUT_MERCHANT_ID = "255801704351"
