@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, integer, timestamp, serial } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, serial, varchar, boolean } from 'drizzle-orm/pg-core';
 
 // Database table for reviews
 export const reviewsTable = pgTable('reviews', {
@@ -9,6 +9,20 @@ export const reviewsTable = pgTable('reviews', {
   comment: text('comment').notNull(),
   userName: text('user_name').notNull(),
   userEmail: text('user_email'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Database table for orders/subscriptions
+export const ordersTable = pgTable('orders', {
+  id: serial('id').primaryKey(),
+  planName: varchar('plan_name').notNull(),
+  price: text('price').notNull(),
+  customerEmail: text('customer_email').notNull(),
+  customerName: text('customer_name'),
+  paymentMethod: varchar('payment_method').notNull(),
+  status: varchar('status').default('pending').notNull(),
+  checkoutSessionId: text('checkout_session_id'),
+  referenceId: text('reference_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

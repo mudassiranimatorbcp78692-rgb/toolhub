@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 export default function Pricing() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [customerEmail, setCustomerEmail] = useState<string>("");
+  const [customerName, setCustomerName] = useState<string>("");
   const { toast } = useToast();
 
   const plans = [
@@ -88,23 +90,54 @@ export default function Pricing() {
     setSelectedPayment(null);
   };
 
-  const handlePaymentConfirm = () => {
-    if (!selectedPayment) return;
-
-    toast({
-      title: "Payment Method Selected",
-      description: `${selectedPlan} plan with ${paymentMethods.find(p => p.id === selectedPayment)?.name}`,
-    });
-
-    // Simulate payment processing
-    setTimeout(() => {
+  const handlePaymentConfirm = async () => {
+    if (!selectedPayment || !selectedPlan || !customerEmail || !customerName) {
       toast({
-        title: "Success!",
-        description: `Your ${selectedPlan} subscription is now active.`,
+        title: "Missing Information",
+        description: "Please fill in all fields before proceeding",
+        variant: "destructive",
       });
-      setSelectedPlan(null);
-      setSelectedPayment(null);
-    }, 1500);
+      return;
+    }
+
+    try {
+      // Get plan details
+      const plan = plans.find(p => p.name === selectedPlan);
+      if (!plan) return;
+
+      // Call 2Checkout checkout endpoint
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planName: selectedPlan,
+          price: plan.price.replace("$", ""),
+          email: customerEmail,
+          name: customerName,
+          paymentMethod: selectedPayment,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.checkoutUrl) {
+        // Redirect to 2Checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to initiate checkout",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process payment",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -175,45 +208,71 @@ export default function Pricing() {
         <Dialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
           <DialogContent className="max-w-md" data-testid="dialog-payment-methods">
             <DialogHeader>
-              <DialogTitle>Select Payment Method</DialogTitle>
+              <DialogTitle>Enter Your Details</DialogTitle>
               <DialogDescription>
-                Choose how you'd like to pay for your {selectedPlan} subscription
+                Provide your information for the {selectedPlan} subscription
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
-              {paymentMethods.map((method) => (
-                <div
-                  key={method.id}
-                  onClick={() => setSelectedPayment(method.id)}
-                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    selectedPayment === method.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover-elevate"
-                  }`}
-                  data-testid={`payment-method-${method.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{method.icon}</div>
-                    <div>
-                      <p className="font-semibold">{method.name}</p>
-                      {method.id === "visa" && (
-                        <p className="text-xs text-muted-foreground">Credit/Debit Card</p>
-                      )}
-                      {method.id === "payoneer" && (
-                        <p className="text-xs text-muted-foreground">Digital Wallet</p>
-                      )}
+              <div>
+                <label className="text-sm font-medium">Full Name *</label>
+                <input
+                  type="text"
+                  placeholder="John Doe"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email Address *</label>
+                <input
+                  type="email"
+                  placeholder="john@example.com"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Select Payment Method *</label>
+                <div className="space-y-2 mt-2">
+                  {paymentMethods.map((method) => (
+                    <div
+                      key={method.id}
+                      onClick={() => setSelectedPayment(method.id)}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        selectedPayment === method.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover-elevate"
+                      }`}
+                      data-testid={`payment-method-${method.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">{method.icon}</div>
+                        <div>
+                          <p className="font-semibold">{method.name}</p>
+                          {method.id === "visa" && (
+                            <p className="text-xs text-muted-foreground">Credit/Debit Card</p>
+                          )}
+                          {method.id === "payoneer" && (
+                            <p className="text-xs text-muted-foreground">Digital Wallet</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
 
             <div className="space-y-3 pt-4">
               <Button
                 className="w-full"
                 onClick={handlePaymentConfirm}
-                disabled={!selectedPayment}
+                disabled={!selectedPayment || !customerEmail || !customerName}
                 data-testid="button-confirm-payment"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
@@ -225,6 +284,8 @@ export default function Pricing() {
                 onClick={() => {
                   setSelectedPlan(null);
                   setSelectedPayment(null);
+                  setCustomerEmail("");
+                  setCustomerName("");
                 }}
                 data-testid="button-cancel-payment"
               >

@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import { initializeDb, getDb } from "./db";
-import { reviewsTable } from "../shared/schema";
+import { reviewsTable, ordersTable } from "../shared/schema";
 import { desc, eq } from "drizzle-orm";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -64,6 +64,78 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // 2Checkout payment initiation endpoint
+  app.post("/api/checkout", async (req, res) => {
+    try {
+      const { planName, price, email, name, paymentMethod } = req.body;
+
+      if (!planName || !price || !email || !paymentMethod) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const db = getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Database not available" });
+      }
+
+      // Create order record
+      const checkoutId = `CHK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      try {
+        await db.insert(ordersTable).values({
+          planName,
+          price: String(price),
+          customerEmail: email,
+          customerName: name,
+          paymentMethod,
+          status: "pending",
+          checkoutSessionId: checkoutId,
+        });
+      } catch (dbErr) {
+        console.log("Note: Orders table may not exist yet, continuing with checkout");
+      }
+
+      // Generate 2Checkout checkout URL
+      // Using 2Checkout's hosted checkout page
+      const productId = paymentMethod === "visa" ? "card_checkout" : "payoneer_checkout";
+      const checkoutUrl = `https://2checkout.com/checkout/purchase?merchant_id=YOUR_MERCHANT_ID&product_id=${productId}&ref_id=${checkoutId}&email=${encodeURIComponent(email)}&customer_name=${encodeURIComponent(name || "Customer")}`;
+
+      res.json({
+        success: true,
+        checkoutUrl,
+        checkoutId,
+        message: "Checkout initiated",
+      });
+    } catch (error) {
+      console.error("Checkout error:", error);
+      res.status(500).json({ error: "Failed to initiate checkout" });
+    }
+  });
+
+  // 2Checkout webhook handler for payment confirmation
+  app.post("/api/webhook/2checkout", async (req, res) => {
+    try {
+      const { ref_id, status, email } = req.body;
+
+      const db = getDb();
+      if (db && ref_id && status) {
+        try {
+          await db
+            .update(ordersTable)
+            .set({ status, referenceId: ref_id })
+            .where(eq(ordersTable.checkoutSessionId, ref_id));
+        } catch (dbErr) {
+          console.log("Webhook processing continued");
+        }
+      }
+
+      res.json({ success: true, message: "Webhook received" });
+    } catch (error) {
+      console.error("Webhook error:", error);
+      res.status(500).json({ error: "Webhook processing failed" });
+    }
   });
 
   // Contact form endpoint
