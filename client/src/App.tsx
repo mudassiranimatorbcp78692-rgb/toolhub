@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { Analytics } from "@vercel/analytics/react";
 
 // Pages
 import Home from "@/pages/home";
@@ -104,6 +105,7 @@ function App() {
             <Footer />
           </div>
           <Toaster />
+          <Analytics />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
