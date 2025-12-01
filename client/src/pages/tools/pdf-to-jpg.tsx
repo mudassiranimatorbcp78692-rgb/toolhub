@@ -22,10 +22,11 @@ export default function PdfToJpg() {
     const fileSizeMB = selectedFile.size / (1024 * 1024);
     if (fileSizeMB > planLimits.maxFileSize) {
       toast({
-        title: "File Too Large",
-        description: `Maximum file size for your plan is ${planLimits.maxFileSize}MB`,
+        title: "❌ File Too Large",
+        description: `Your plan allows max ${planLimits.maxFileSize}MB. This file is ${fileSizeMB.toFixed(2)}MB. Upgrade to Pro (50MB) or Enterprise (Unlimited)`,
         variant: "destructive",
       });
+      // Don't set file - block it completely
       return;
     }
     setFile(selectedFile);
