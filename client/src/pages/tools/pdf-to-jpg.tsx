@@ -36,6 +36,18 @@ export default function PdfToJpg() {
   const handleConvert = async () => {
     if (!file) return;
 
+    // Enforce file size limit even if upload got through
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > planLimits.maxFileSize) {
+      toast({
+        title: "❌ File Size Violation",
+        description: `File is ${fileSizeMB.toFixed(2)}MB but your plan allows max ${planLimits.maxFileSize}MB. Upgrade to Pro (50MB) or Enterprise (Unlimited)`,
+        variant: "destructive",
+      });
+      setFile(null);
+      return;
+    }
+
     setProcessing(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
