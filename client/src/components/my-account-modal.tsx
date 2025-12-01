@@ -34,6 +34,12 @@ export function MyAccountModal() {
       );
       const data = await response.json();
       setResult(data);
+      
+      // Save email to localStorage if Pro/Enterprise
+      if (data.hasAccess) {
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userPlan', data.planName || 'Free');
+      }
     } catch (error) {
       console.error("Error checking access:", error);
       setResult({ hasAccess: false });

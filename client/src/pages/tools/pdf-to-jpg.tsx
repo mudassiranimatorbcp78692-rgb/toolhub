@@ -4,6 +4,8 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PlanGate } from "@/components/plan-gate";
+import { usePlanCheck } from "@/hooks/use-plan-check";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker?worker';
 
@@ -11,12 +13,22 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker?worker';
 pdfjsLib.GlobalWorkerOptions.workerPort = new pdfWorker();
 
 export default function PdfToJpg() {
+  const { planLimits } = usePlanCheck('pdf-to-jpg');
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
 
   const handleFileSelect = (selectedFile: File) => {
+    const fileSizeMB = selectedFile.size / (1024 * 1024);
+    if (fileSizeMB > planLimits.maxFileSize) {
+      toast({
+        title: "File Too Large",
+        description: `Maximum file size for your plan is ${planLimits.maxFileSize}MB`,
+        variant: "destructive",
+      });
+      return;
+    }
     setFile(selectedFile);
     setImages([]);
   };
@@ -114,22 +126,23 @@ export default function PdfToJpg() {
   };
 
   return (
-    <ToolWrapper
-      toolName="PDF to JPG"
-      toolDescription="Convert PDF pages to high-quality JPG images"
-      category="pdf"
-      howToUse={[
-        "Upload your PDF file using the upload area",
-        "Click 'Convert to JPG' to start the conversion",
-        "Preview the converted images",
-        "Download individual pages or all pages at once",
-      ]}
-      relatedTools={[
-        { name: "JPG to PDF", path: "/tool/jpg-to-pdf" },
-        { name: "PDF Compress", path: "/tool/pdf-compress" },
-        { name: "PDF Split", path: "/tool/pdf-split" },
-      ]}
-    >
+    <PlanGate toolId="pdf-to-jpg" toolName="PDF to JPG" requiredPlan="Pro">
+      <ToolWrapper
+        toolName="PDF to JPG"
+        toolDescription="Convert PDF pages to high-quality JPG images"
+        category="pdf"
+        howToUse={[
+          "Upload your PDF file using the upload area",
+          "Click 'Convert to JPG' to start the conversion",
+          "Preview the converted images",
+          "Download individual pages or all pages at once",
+        ]}
+        relatedTools={[
+          { name: "JPG to PDF", path: "/tool/jpg-to-pdf" },
+          { name: "PDF Compress", path: "/tool/pdf-compress" },
+          { name: "PDF Split", path: "/tool/pdf-split" },
+        ]}
+      >
       <div className="space-y-6">
         <FileUpload
           onFileSelect={handleFileSelect}
@@ -187,6 +200,7 @@ export default function PdfToJpg() {
           </div>
         )}
       </div>
-    </ToolWrapper>
+      </ToolWrapper>
+    </PlanGate>
   );
 }
