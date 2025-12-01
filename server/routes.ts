@@ -452,7 +452,6 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
       await db.insert(subscriptionsTable).values({
         email: orderData.customerEmail,
         planName: orderData.planName,
-        invoiceId: invoiceId,
         expiresAt: expiryDate,
         isActive: true,
       });
@@ -629,7 +628,6 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
       await db.insert(subscriptionsTable).values({
         email: String(email),
         planName: orderData.planName,
-        invoiceId: orderData.referenceId,
         expiresAt: expiryDate,
         isActive: true,
       });

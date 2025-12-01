@@ -23,7 +23,6 @@ export const ordersTable = pgTable('orders', {
   status: varchar('status').default('pending').notNull(), // pending, pending_manual, completed, failed
   checkoutSessionId: text('checkout_session_id'),
   referenceId: text('reference_id'), // Invoice ID or 2Checkout ref
-  invoiceId: text('invoice_id'),
   expiresAt: timestamp('expires_at'), // Subscription expiry
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -32,10 +31,9 @@ export const ordersTable = pgTable('orders', {
 export const subscriptionsTable = pgTable('subscriptions', {
   id: serial('id').primaryKey(),
   email: text('email').notNull().unique(),
-  planName: varchar('plan_name').notNull(), // Pro, Enterprise, Free
-  invoiceId: text('invoice_id'), // Link to order
+  planName: varchar('plan_name').notNull(),
   activatedAt: timestamp('activated_at').defaultNow().notNull(),
-  expiresAt: timestamp('expires_at'), // Subscription expiry date
+  expiresAt: timestamp('expires_at'),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
