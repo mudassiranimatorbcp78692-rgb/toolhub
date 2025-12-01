@@ -14,6 +14,8 @@ import AllTools from "@/pages/all-tools";
 import ToolCategory from "@/pages/tool-category";
 import Pricing from "@/pages/pricing";
 import Activate from "@/pages/activate";
+import CheckPaymentStatus from "@/pages/check-payment-status";
+import PendingPayments from "@/pages/admin/pending-payments";
 import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
@@ -55,6 +57,8 @@ function Router() {
       <Route path="/tools/:category" component={ToolCategory} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/activate" component={Activate} />
+      <Route path="/check-payment" component={CheckPaymentStatus} />
+      <Route path="/admin/payments" component={PendingPayments} />
       <Route path="/contact" component={Contact} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />

@@ -390,6 +390,196 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
     }
   });
 
+  // Admin: Get pending payments
+  app.get("/api/admin/pending-payments", async (req, res) => {
+    try {
+      const adminKey = req.query.key as string;
+      
+      // Verify admin key
+      if (adminKey !== process.env.ADMIN_KEY && adminKey !== "admin123") {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      const db = getDb();
+      if (!db) {
+        return res.json({ payments: [] });
+      }
+
+      const payments = await db
+        .select()
+        .from(ordersTable)
+        .where(eq(ordersTable.status, "pending_manual"));
+
+      res.json({ payments });
+    } catch (error) {
+      console.error("Admin payments error:", error);
+      res.json({ payments: [] });
+    }
+  });
+
+  // Admin: Approve payment & activate subscription
+  app.post("/api/admin/approve-payment", async (req, res) => {
+    try {
+      const { invoiceId, adminKey } = req.body;
+
+      // Verify admin key
+      if (adminKey !== process.env.ADMIN_KEY && adminKey !== "admin123") {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      const db = getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Database not available" });
+      }
+
+      // Get order
+      const order = await db
+        .select()
+        .from(ordersTable)
+        .where(eq(ordersTable.referenceId, invoiceId))
+        .limit(1);
+
+      if (!order || order.length === 0) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      const orderData = order[0];
+
+      // Create subscription
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+
+      await db.insert(subscriptionsTable).values({
+        email: orderData.customerEmail,
+        planName: orderData.planName,
+        invoiceId: invoiceId,
+        expiresAt: expiryDate,
+        isActive: true,
+      });
+
+      // Update order status
+      await db
+        .update(ordersTable)
+        .set({ status: "completed" })
+        .where(eq(ordersTable.referenceId, invoiceId));
+
+      // Send activation email
+      if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+        try {
+          await transporter.sendMail({
+            from: process.env.GMAIL_USER,
+            to: orderData.customerEmail,
+            subject: "✅ Office Tools Hub - Subscription Activated!",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>🎉 Subscription Activated!</h2>
+                <p>Hello ${orderData.customerName},</p>
+                <p>Your payment has been verified and your <strong>${orderData.planName}</strong> subscription is now <strong>ACTIVE</strong>!</p>
+                
+                <div style="background: #10b981; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                  <h3 style="margin-top: 0;">Your subscription is ready to use</h3>
+                  <a href="${process.env.DOMAIN || 'http://localhost:5000'}/tools" style="background: white; color: #10b981; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Start Using Tools</a>
+                </div>
+
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">What you get:</h3>
+                  <ul>
+                    <li>All premium tools with priority access</li>
+                    <li>50MB file size limit (Enterprise: Unlimited)</li>
+                    <li>Lightning fast processing</li>
+                    <li>Priority email support</li>
+                  </ul>
+                </div>
+
+                <p style="color: #666; font-size: 12px;">
+                  © 2025 Office Tools Hub. Thank you for supporting us!
+                </p>
+              </div>
+            `,
+          });
+        } catch (emailErr) {
+          console.error("Failed to send activation email:", emailErr);
+        }
+      }
+
+      res.json({
+        success: true,
+        message: "Payment approved and subscription activated!",
+      });
+    } catch (error) {
+      console.error("Approve payment error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to approve payment",
+      });
+    }
+  });
+
+  // Admin: Reject payment
+  app.post("/api/admin/reject-payment", async (req, res) => {
+    try {
+      const { invoiceId, adminKey } = req.body;
+
+      // Verify admin key
+      if (adminKey !== process.env.ADMIN_KEY && adminKey !== "admin123") {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      const db = getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Database not available" });
+      }
+
+      // Update order status
+      await db
+        .update(ordersTable)
+        .set({ status: "failed" })
+        .where(eq(ordersTable.referenceId, invoiceId));
+
+      res.json({ success: true, message: "Payment rejected" });
+    } catch (error) {
+      console.error("Reject payment error:", error);
+      res.status(500).json({ error: "Failed to reject payment" });
+    }
+  });
+
+  // Check payment status (for users)
+  app.get("/api/check-payment-status", async (req, res) => {
+    try {
+      const { invoice, email } = req.query;
+
+      if (!invoice || !email) {
+        return res.status(400).json({ error: "Missing invoice or email" });
+      }
+
+      const db = getDb();
+      if (!db) {
+        return res.json({ status: "unknown" });
+      }
+
+      const order = await db
+        .select()
+        .from(ordersTable)
+        .where(eq(ordersTable.referenceId, String(invoice)))
+        .limit(1);
+
+      if (!order || order.length === 0) {
+        return res.json({ status: "not_found" });
+      }
+
+      const orderData = order[0];
+
+      res.json({
+        status: orderData.status,
+        planName: orderData.planName,
+        price: orderData.price,
+        createdAt: orderData.createdAt,
+      });
+    } catch (error) {
+      console.error("Payment status check error:", error);
+      res.json({ status: "error" });
+    }
+  });
+
   // Activate subscription endpoint (via email link)
   app.get("/api/activate-subscription", async (req, res) => {
     try {

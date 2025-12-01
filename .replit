@@ -44,7 +44,13 @@ PAYONEER_EMAIL = "mudassiranimator92@gmail.com"
 JAZZCASH_NUMBER = "03090778692"
 EASYPAISA_NUMBER = "03090778692"
 BANK_ACCOUNT_INFO = "Contact us"
+ADMIN_KEY = "admin123"
+DOMAIN = "http://localhost:5000"
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 40241
+externalPort = 3000
