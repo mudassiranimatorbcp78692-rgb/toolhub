@@ -24,10 +24,11 @@ export function usePlanCheck(toolId?: string) {
   const checkUserPlan = async () => {
     try {
       setLoading(true);
-      // Get email from localStorage or prompt user
+      // Get email from localStorage
       const storedEmail = localStorage.getItem('userEmail');
       
       if (!storedEmail) {
+        // No email stored = Free plan
         setUserPlan(DEFAULT_PLAN);
         setLoading(false);
         return;
@@ -37,7 +38,22 @@ export function usePlanCheck(toolId?: string) {
       const response = await fetch(
         `/api/verify-subscription?email=${encodeURIComponent(storedEmail)}`
       );
-      const data = await response.json();
+      
+      if (!response.ok) {
+        console.warn('API returned error:', response.status);
+        setUserPlan(DEFAULT_PLAN);
+        setLoading(false);
+        return;
+      }
+
+      const text = await response.text();
+      if (!text) {
+        setUserPlan(DEFAULT_PLAN);
+        setLoading(false);
+        return;
+      }
+
+      const data = JSON.parse(text);
 
       if (data.hasAccess && data.planName) {
         setUserPlan({
@@ -50,7 +66,7 @@ export function usePlanCheck(toolId?: string) {
       }
     } catch (err) {
       console.error('Error checking plan:', err);
-      setError('Failed to verify subscription');
+      // Always default to Free on error for security
       setUserPlan(DEFAULT_PLAN);
     } finally {
       setLoading(false);
