@@ -40,7 +40,15 @@ build = ["npm", "run", "build"]
 [userenv.shared]
 DATABASE_URL = "postgresql://neondb_owner:npg_pzImeXK27URT@ep-raspy-silence-ahb2jnyg-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 CHECKOUT_MERCHANT_ID = "255801704351"
+PAYONEER_EMAIL = "mudassiranimator92@gmail.com"
+JAZZCASH_NUMBER = "03090778692"
+EASYPAISA_NUMBER = "03090778692"
+BANK_ACCOUNT_INFO = "Contact us"
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 41173
+externalPort = 3000
