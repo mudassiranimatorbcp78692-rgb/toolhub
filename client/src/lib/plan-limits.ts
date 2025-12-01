@@ -41,40 +41,9 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   },
 };
 
-// Tool availability by plan
-export const TOOL_AVAILABILITY: Record<string, PlanType[]> = {
-  // Free tools (available to all)
-  'word-counter': ['Free', 'Pro', 'Enterprise'],
-  'case-converter': ['Free', 'Pro', 'Enterprise'],
-  'lorem-ipsum': ['Free', 'Pro', 'Enterprise'],
-  'password-generator': ['Free', 'Pro', 'Enterprise'],
-  'username-generator': ['Free', 'Pro', 'Enterprise'],
-  'percentage-calculator': ['Free', 'Pro', 'Enterprise'],
-  
-  // Premium tools
-  'pdf-to-jpg': ['Pro', 'Enterprise'],
-  'jpg-to-pdf': ['Pro', 'Enterprise'],
-  'pdf-merge': ['Pro', 'Enterprise'],
-  'pdf-split': ['Pro', 'Enterprise'],
-  'pdf-compress': ['Pro', 'Enterprise'],
-  'pdf-rotate': ['Pro', 'Enterprise'],
-  'image-compress': ['Pro', 'Enterprise'],
-  'image-resize': ['Pro', 'Enterprise'],
-  'image-crop': ['Pro', 'Enterprise'],
-  'image-converter': ['Pro', 'Enterprise'],
-  'image-to-text': ['Pro', 'Enterprise'],
-  'html-to-pdf': ['Pro', 'Enterprise'],
-  'qr-code': ['Pro', 'Enterprise'],
-  'barcode': ['Pro', 'Enterprise'],
-  'grammar-checker': ['Pro', 'Enterprise'],
-  'loan-calculator': ['Free', 'Pro', 'Enterprise'],
-  'gpa-calculator': ['Free', 'Pro', 'Enterprise'],
-  'zakat-calculator': ['Free', 'Pro', 'Enterprise'],
-};
-
-export function isToolAvailable(toolId: string, plan: PlanType): boolean {
-  const allowedPlans = TOOL_AVAILABILITY[toolId];
-  return allowedPlans?.includes(plan) ?? true; // Default to available if not configured
+// All tools available to all users - limits only differ by plan
+export function isToolAvailable(_toolId: string, _plan: PlanType): boolean {
+  return true; // All tools available to all users
 }
 
 export function formatFileSize(bytes: number): string {
