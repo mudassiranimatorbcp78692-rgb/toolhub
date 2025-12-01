@@ -48,3 +48,7 @@ BANK_ACCOUNT_INFO = "Contact us"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 43985
+externalPort = 3000

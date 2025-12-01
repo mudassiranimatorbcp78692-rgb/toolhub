@@ -335,24 +335,40 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
         html: "<p>Please contact support for payment instructions.</p>",
       };
 
-      // Send email to customer
-      try {
-        await transporter.sendMail({
-          from: process.env.GMAIL_USER,
-          to: email,
-          subject: `Office Tools Hub - ${instructionData.title}`,
-          html: instructionData.html,
-        });
-        console.log(`Payment instructions sent to ${email}`);
-      } catch (emailErr) {
-        console.error("Failed to send email:", emailErr);
-        // Continue anyway - order is still created
+      // Try to send email, but don't fail if not configured
+      let emailSent = false;
+      let emailMessage = "";
+      
+      if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+        try {
+          await transporter.sendMail({
+            from: process.env.GMAIL_USER,
+            to: email,
+            subject: `Office Tools Hub - ${instructionData.title}`,
+            html: instructionData.html,
+          });
+          console.log(`Payment instructions sent to ${email}`);
+          emailSent = true;
+          emailMessage = "Instructions sent to your email.";
+        } catch (emailErr) {
+          console.error("Failed to send email:", emailErr);
+          emailMessage = "Email sending failed. Instructions shown below.";
+        }
+      } else {
+        emailMessage = "Instructions are displayed below. Please save them.";
       }
 
       res.json({
         success: true,
         invoiceId,
-        message: "Payment order created. Instructions sent to your email.",
+        message: emailMessage,
+        emailSent,
+        paymentInstructions: instructionData.html,
+        paymentDetails: {
+          method: paymentMethod,
+          amount: price,
+          plan: planName,
+        }
       });
     } catch (error) {
       console.error("Custom payment error:", error);

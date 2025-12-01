@@ -18,6 +18,12 @@ export default function Pricing() {
   const [customerEmail, setCustomerEmail] = useState<string>("");
   const [customerName, setCustomerName] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentInstructions, setPaymentInstructions] = useState<{
+    html: string;
+    invoiceId: string;
+    message: string;
+    emailSent: boolean;
+  } | null>(null);
   const { toast } = useToast();
 
   const plans = [
@@ -129,9 +135,11 @@ export default function Pricing() {
         const data = await response.json();
 
         if (data.success) {
-          toast({
-            title: "Payment Instructions Sent",
-            description: `Invoice #${data.invoiceId} sent to ${customerEmail}. Please follow the payment instructions.`,
+          setPaymentInstructions({
+            html: data.paymentInstructions || "",
+            invoiceId: data.invoiceId,
+            message: data.message,
+            emailSent: data.emailSent || false,
           });
           setSelectedPlan(null);
           setSelectedPayment(null);
@@ -238,6 +246,53 @@ export default function Pricing() {
             </Card>
           ))}
         </div>
+
+        {/* Payment Instructions Dialog */}
+        <Dialog open={!!paymentInstructions} onOpenChange={(open) => !open && setPaymentInstructions(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Payment Instructions - Invoice #{paymentInstructions?.invoiceId}</DialogTitle>
+              <DialogDescription>
+                {paymentInstructions?.emailSent 
+                  ? "✅ Instructions have been sent to your email. Details below:" 
+                  : "📋 Please follow these payment instructions:"}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
+              <p className="text-sm text-blue-900 font-medium">{paymentInstructions?.message}</p>
+            </div>
+
+            <div 
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: paymentInstructions?.html || "" }}
+            />
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  if (paymentInstructions?.html) {
+                    navigator.clipboard.writeText(paymentInstructions.html);
+                    toast({
+                      title: "Copied",
+                      description: "Instructions copied to clipboard",
+                    });
+                  }
+                }}
+              >
+                Copy Instructions
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setPaymentInstructions(null)}
+              >
+                Done
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Payment Method Dialog */}
         <Dialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
