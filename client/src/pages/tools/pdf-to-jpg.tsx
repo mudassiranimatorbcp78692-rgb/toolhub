@@ -145,7 +145,7 @@ export default function PdfToJpg() {
         <FileUpload
           onFileSelect={handleFileSelect}
           acceptedFormats=".pdf"
-          maxSizeMB={20}
+          maxSizeMB={planLimits.maxFileSize}
           disabled={processing}
         />
 
