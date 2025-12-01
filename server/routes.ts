@@ -467,7 +467,12 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
         );
 
       // Send activation email (with or without Gmail)
-      const verificationUrl = `${process.env.DOMAIN || 'http://localhost:5000'}/verify-access?email=${encodeURIComponent(orderData.customerEmail)}`;
+      // Use DOMAIN env var or construct from REPLIT_DOMAINS / VERCEL_URL
+      const domain = process.env.DOMAIN || 
+                     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                     (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS}` : 
+                     'http://localhost:5000'));
+      const verificationUrl = `${domain}/verify-access?email=${encodeURIComponent(orderData.customerEmail)}`;
       
       const emailContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

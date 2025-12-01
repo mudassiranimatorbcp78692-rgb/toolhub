@@ -45,8 +45,12 @@ JAZZCASH_NUMBER = "03090778692"
 EASYPAISA_NUMBER = "03090778692"
 BANK_ACCOUNT_INFO = "Contact us"
 ADMIN_KEY = "admin123"
-DOMAIN = "http://localhost:5000"
+DOMAIN = "https://c5862050-33b7-4143-97b1-202e6fc17b96-00-37eolqgskuebn.sisko.replit.dev"
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 43079
+externalPort = 3000
