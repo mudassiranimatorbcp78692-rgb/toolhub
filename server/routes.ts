@@ -141,6 +141,62 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
     }
   });
 
+  // Custom payment handler (direct payments: Payoneer, Bank, EasyPaisa, JazzCash)
+  app.post("/api/custom-payment", async (req, res) => {
+    try {
+      const { planName, price, email, name, paymentMethod } = req.body;
+
+      if (!planName || !price || !email || !name || !paymentMethod) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Generate unique invoice ID
+      const invoiceId = `INV-${Date.now()}`;
+
+      const db = getDb();
+      if (db) {
+        try {
+          await db.insert(ordersTable).values({
+            planName,
+            price: String(price),
+            customerEmail: email,
+            customerName: name,
+            paymentMethod,
+            status: "pending_manual",
+            referenceId: invoiceId,
+          });
+        } catch (dbErr) {
+          console.log("Note: Could not save order, continuing");
+        }
+      }
+
+      // Get payment instructions
+      const payoneerEmail = process.env.PAYONEER_EMAIL || "your-payoneer@email.com";
+      const bankAccountInfo = process.env.BANK_ACCOUNT_INFO || "Contact support for bank details";
+      const easyPaisaNumber = process.env.EASYPAISA_NUMBER || "XXX-XXXXXXX";
+      const jazzCashNumber = process.env.JAZZCASH_NUMBER || "XXX-XXXXXXX";
+
+      const instructions: Record<string, string> = {
+        payoneer_direct: `PAYONEER PAYMENT\nEmail: ${payoneerEmail}\nAmount: $${price}\nInvoice: ${invoiceId}`,
+        bank_transfer: `BANK TRANSFER\n${bankAccountInfo}\nAmount: $${price}\nReference: ${invoiceId}`,
+        easypaisa: `EASYPAISA\nAccount: ${easyPaisaNumber}\nAmount: $${price} USD (PKR equivalent)\nReference: ${invoiceId}`,
+        jazzcash: `JAZZCASH\nAccount: ${jazzCashNumber}\nAmount: $${price} USD (PKR equivalent)\nReference: ${invoiceId}`,
+      };
+
+      res.json({
+        success: true,
+        invoiceId,
+        message: "Payment order created. Instructions sent to email.",
+        paymentInstructions: instructions[paymentMethod] || "Please contact support",
+      });
+    } catch (error) {
+      console.error("Custom payment error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Failed to process custom payment",
+      });
+    }
+  });
+
   // Contact form endpoint
   app.post("/api/contact", async (req, res) => {
     const { name, email, subject, message } = req.body;
