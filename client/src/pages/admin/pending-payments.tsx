@@ -5,7 +5,6 @@ import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 
 interface PendingPayment {
   id: number;
-  invoiceId: string;
   customerName: string;
   customerEmail: string;
   planName: string;
@@ -13,6 +12,8 @@ interface PendingPayment {
   paymentMethod: string;
   status: string;
   createdAt: string;
+  referenceId?: string | null;
+  checkoutSessionId?: string;
 }
 
 export default function PendingPayments() {
@@ -54,7 +55,12 @@ export default function PendingPayments() {
     }
   };
 
-  const approvePayment = async (invoiceId: string) => {
+  const approvePayment = async (payment: PendingPayment) => {
+    const invoiceId = payment.referenceId || payment.checkoutSessionId;
+    if (!invoiceId) {
+      alert("Cannot approve: Missing invoice ID");
+      return;
+    }
     try {
       const response = await fetch("/api/admin/approve-payment", {
         method: "POST",
@@ -65,13 +71,20 @@ export default function PendingPayments() {
       if (data.success) {
         alert("✅ Payment approved! User will receive activation email.");
         loadPayments(adminKey);
+      } else {
+        alert("Error: " + (data.error || "Failed to approve"));
       }
     } catch (error) {
       alert("Failed to approve payment");
     }
   };
 
-  const rejectPayment = async (invoiceId: string) => {
+  const rejectPayment = async (payment: PendingPayment) => {
+    const invoiceId = payment.referenceId || payment.checkoutSessionId;
+    if (!invoiceId) {
+      alert("Cannot reject: Missing invoice ID");
+      return;
+    }
     try {
       const response = await fetch("/api/admin/reject-payment", {
         method: "POST",
@@ -82,6 +95,8 @@ export default function PendingPayments() {
       if (data.success) {
         alert("Payment rejected");
         loadPayments(adminKey);
+      } else {
+        alert("Error: " + (data.error || "Failed to reject"));
       }
     } catch (error) {
       alert("Failed to reject payment");
@@ -133,10 +148,10 @@ export default function PendingPayments() {
           <div className="space-y-4">
             {payments.map((payment) => (
               <Card key={payment.id} className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground">INVOICE</p>
-                    <p className="text-lg font-mono">{payment.invoiceId}</p>
+                    <p className="text-xs font-medium text-muted-foreground">ID</p>
+                    <p className="text-lg font-mono">#{payment.id}</p>
                   </div>
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">CUSTOMER</p>
@@ -149,19 +164,23 @@ export default function PendingPayments() {
                   </div>
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">METHOD</p>
-                    <p className="text-lg font-semibold">{payment.paymentMethod}</p>
+                    <p className="text-lg font-semibold capitalize">{payment.paymentMethod}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">DATE</p>
+                    <p className="text-sm">{new Date(payment.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-4 border-t">
                   <Button
-                    onClick={() => approvePayment(payment.invoiceId)}
+                    onClick={() => approvePayment(payment)}
                     className="flex-1 bg-green-600 hover:bg-green-700"
                   >
                     ✅ Approve & Activate
                   </Button>
                   <Button
-                    onClick={() => rejectPayment(payment.invoiceId)}
+                    onClick={() => rejectPayment(payment)}
                     variant="destructive"
                     className="flex-1"
                   >

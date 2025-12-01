@@ -23,7 +23,6 @@ export const ordersTable = pgTable('orders', {
   status: varchar('status').default('pending').notNull(), // pending, pending_manual, completed, failed
   checkoutSessionId: text('checkout_session_id'),
   referenceId: text('reference_id'), // Invoice ID or 2Checkout ref
-  expiresAt: timestamp('expires_at'), // Subscription expiry
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

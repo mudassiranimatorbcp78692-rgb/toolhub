@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import { initializeDb, getDb } from "./db";
 import { reviewsTable, ordersTable, subscriptionsTable } from "../shared/schema";
-import { desc, eq, or } from "drizzle-orm";
+import { desc, eq, or, sql } from "drizzle-orm";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,7 +90,7 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
           customerEmail: email,
           customerName: name,
           paymentMethod,
-          status: "pending",
+          status: "pending_manual",
           checkoutSessionId: checkoutId,
         });
       } catch (dbErr) {
@@ -432,11 +432,13 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
         return res.status(500).json({ error: "Database not available" });
       }
 
-      // Get order
+      // Get order (check both referenceId for custom payments and checkoutSessionId for 2Checkout)
       const order = await db
         .select()
         .from(ordersTable)
-        .where(eq(ordersTable.referenceId, invoiceId))
+        .where(
+          sql`${ordersTable.referenceId} = ${invoiceId} OR ${ordersTable.checkoutSessionId} = ${invoiceId}`
+        )
         .limit(1);
 
       if (!order || order.length === 0) {
@@ -460,7 +462,9 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
       await db
         .update(ordersTable)
         .set({ status: "completed" })
-        .where(eq(ordersTable.referenceId, invoiceId));
+        .where(
+          sql`${ordersTable.referenceId} = ${invoiceId} OR ${ordersTable.checkoutSessionId} = ${invoiceId}`
+        );
 
       // Send activation email
       if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
@@ -528,11 +532,13 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
         return res.status(500).json({ error: "Database not available" });
       }
 
-      // Update order status
+      // Update order status (check both referenceId and checkoutSessionId)
       await db
         .update(ordersTable)
         .set({ status: "failed" })
-        .where(eq(ordersTable.referenceId, invoiceId));
+        .where(
+          sql`${ordersTable.referenceId} = ${invoiceId} OR ${ordersTable.checkoutSessionId} = ${invoiceId}`
+        );
 
       res.json({ success: true, message: "Payment rejected" });
     } catch (error) {
