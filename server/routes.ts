@@ -170,24 +170,189 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
         }
       }
 
-      // Get payment instructions
+      // Get payment instructions and details
       const payoneerEmail = process.env.PAYONEER_EMAIL || "your-payoneer@email.com";
       const bankAccountInfo = process.env.BANK_ACCOUNT_INFO || "Contact support for bank details";
       const easyPaisaNumber = process.env.EASYPAISA_NUMBER || "XXX-XXXXXXX";
       const jazzCashNumber = process.env.JAZZCASH_NUMBER || "XXX-XXXXXXX";
 
-      const instructions: Record<string, string> = {
-        payoneer_direct: `PAYONEER PAYMENT\nEmail: ${payoneerEmail}\nAmount: $${price}\nInvoice: ${invoiceId}`,
-        bank_transfer: `BANK TRANSFER\n${bankAccountInfo}\nAmount: $${price}\nReference: ${invoiceId}`,
-        easypaisa: `EASYPAISA\nAccount: ${easyPaisaNumber}\nAmount: $${price} USD (PKR equivalent)\nReference: ${invoiceId}`,
-        jazzcash: `JAZZCASH\nAccount: ${jazzCashNumber}\nAmount: $${price} USD (PKR equivalent)\nReference: ${invoiceId}`,
+      const instructionsMap: Record<string, { title: string; html: string }> = {
+        payoneer_direct: {
+          title: "Payoneer Payment Instructions",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>📋 Payment Invoice</h2>
+              <p>Hello ${name},</p>
+              <p>Thank you for choosing Office Tools Hub! Here are your payment instructions:</p>
+              
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Invoice Details</h3>
+                <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                <p><strong>Plan:</strong> ${planName} - $${price}/month</p>
+                <p><strong>Amount:</strong> $${price} USD</p>
+              </div>
+              
+              <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Send Payment To:</h3>
+                <p style="font-size: 16px; font-weight: bold;">${payoneerEmail}</p>
+              </div>
+              
+              <div style="background: #fef08a; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>After Payment:</h3>
+                <ol>
+                  <li>Take a screenshot of the transaction</li>
+                  <li>Reply to this email with the screenshot</li>
+                  <li>Include Invoice ID: <strong>${invoiceId}</strong></li>
+                </ol>
+                <p>Your ${planName} plan will be activated within 2 hours of confirmation.</p>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+              <p style="color: #666; font-size: 12px;">
+                © 2025 Office Tools Hub. If you have any questions, reply to this email.
+              </p>
+            </div>
+          `,
+        },
+        bank_transfer: {
+          title: "Bank Transfer Instructions",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>📋 Payment Invoice</h2>
+              <p>Hello ${name},</p>
+              <p>Thank you for choosing Office Tools Hub! Here are your payment instructions:</p>
+              
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Invoice Details</h3>
+                <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                <p><strong>Plan:</strong> ${planName} - $${price}/month</p>
+                <p><strong>Amount:</strong> $${price} USD</p>
+              </div>
+              
+              <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Bank Details:</h3>
+                <p>${bankAccountInfo}</p>
+                <p><strong>Reference:</strong> ${invoiceId}</p>
+              </div>
+              
+              <div style="background: #fef08a; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>After Transfer:</h3>
+                <ol>
+                  <li>Note the transaction ID</li>
+                  <li>Reply to this email with transaction ID and screenshot</li>
+                  <li>Include Invoice ID: <strong>${invoiceId}</strong></li>
+                </ol>
+                <p>Your ${planName} plan will be activated within 2 hours of confirmation.</p>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+              <p style="color: #666; font-size: 12px;">
+                © 2025 Office Tools Hub. If you have any questions, reply to this email.
+              </p>
+            </div>
+          `,
+        },
+        easypaisa: {
+          title: "EasyPaisa Payment Instructions",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>📋 Payment Invoice</h2>
+              <p>السلام علیکم ${name},</p>
+              <p>Office Tools Hub کے لیے شکریہ! یہاں آپ کی ادائیگی کی ہدایات ہیں:</p>
+              
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Invoice Details</h3>
+                <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                <p><strong>Plan:</strong> ${planName} - $${price}/month</p>
+                <p><strong>Amount:</strong> $${price} USD (برابر PKR)</p>
+              </div>
+              
+              <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>ادا کریں:</h3>
+                <p style="font-size: 16px; font-weight: bold;">EasyPaisa: ${easyPaisaNumber}</p>
+                <p><strong>Reference:</strong> ${invoiceId}</p>
+              </div>
+              
+              <div style="background: #fef08a; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>ادائیگی کے بعد:</h3>
+                <ol>
+                  <li>لین دین کا اسکرین شاٹ لیں</li>
+                  <li>اس ای میل کا جواب دیں اسکرین شاٹ کے ساتھ</li>
+                  <li>Invoice ID شامل کریں: <strong>${invoiceId}</strong></li>
+                </ol>
+                <p>آپ کی ${planName} plan 2 گھنٹے میں فعال ہو جائے گی۔</p>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+              <p style="color: #666; font-size: 12px;">
+                © 2025 Office Tools Hub. اگر آپ کے کوئی سوالات ہوں تو ای میل کا جواب دیں۔
+              </p>
+            </div>
+          `,
+        },
+        jazzcash: {
+          title: "JazzCash Payment Instructions",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>📋 Payment Invoice</h2>
+              <p>السلام علیکم ${name},</p>
+              <p>Office Tools Hub کے لیے شکریہ! یہاں آپ کی ادائیگی کی ہدایات ہیں:</p>
+              
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>Invoice Details</h3>
+                <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+                <p><strong>Plan:</strong> ${planName} - $${price}/month</p>
+                <p><strong>Amount:</strong> $${price} USD (برابر PKR)</p>
+              </div>
+              
+              <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>ادا کریں:</h3>
+                <p style="font-size: 16px; font-weight: bold;">JazzCash: ${jazzCashNumber}</p>
+                <p><strong>Reference:</strong> ${invoiceId}</p>
+              </div>
+              
+              <div style="background: #fef08a; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>ادائیگی کے بعد:</h3>
+                <ol>
+                  <li>لین دین کا اسکرین شاٹ لیں</li>
+                  <li>اس ای میل کا جواب دیں اسکرین شاٹ کے ساتھ</li>
+                  <li>Invoice ID شامل کریں: <strong>${invoiceId}</strong></li>
+                </ol>
+                <p>آپ کی ${planName} plan 2 گھنٹے میں فعال ہو جائے گی۔</p>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+              <p style="color: #666; font-size: 12px;">
+                © 2025 Office Tools Hub. اگر آپ کے کوئی سوالات ہوں تو ای میل کا جواب دیں۔
+              </p>
+            </div>
+          `,
+        },
       };
+
+      const instructionData = instructionsMap[paymentMethod] || {
+        title: "Payment Instructions",
+        html: "<p>Please contact support for payment instructions.</p>",
+      };
+
+      // Send email to customer
+      try {
+        await transporter.sendMail({
+          from: process.env.GMAIL_USER,
+          to: email,
+          subject: `Office Tools Hub - ${instructionData.title}`,
+          html: instructionData.html,
+        });
+        console.log(`Payment instructions sent to ${email}`);
+      } catch (emailErr) {
+        console.error("Failed to send email:", emailErr);
+        // Continue anyway - order is still created
+      }
 
       res.json({
         success: true,
         invoiceId,
-        message: "Payment order created. Instructions sent to email.",
-        paymentInstructions: instructions[paymentMethod] || "Please contact support",
+        message: "Payment order created. Instructions sent to your email.",
       });
     } catch (error) {
       console.error("Custom payment error:", error);
