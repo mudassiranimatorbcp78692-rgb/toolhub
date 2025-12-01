@@ -13,6 +13,7 @@ import Home from "@/pages/home";
 import AllTools from "@/pages/all-tools";
 import ToolCategory from "@/pages/tool-category";
 import Pricing from "@/pages/pricing";
+import Activate from "@/pages/activate";
 import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/tools" component={AllTools} />
       <Route path="/tools/:category" component={ToolCategory} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/activate" component={Activate} />
       <Route path="/contact" component={Contact} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />

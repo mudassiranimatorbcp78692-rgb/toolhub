@@ -5,8 +5,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import { initializeDb, getDb } from "./db";
-import { reviewsTable, ordersTable } from "../shared/schema";
-import { desc, eq } from "drizzle-orm";
+import { reviewsTable, ordersTable, subscriptionsTable } from "../shared/schema";
+import { desc, eq, or } from "drizzle-orm";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -335,6 +335,18 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
         html: "<p>Please contact support for payment instructions.</p>",
       };
 
+      // Generate activation link with unique token
+      const activationLink = `${process.env.DOMAIN || 'http://localhost:5000'}/activate?invoice=${invoiceId}&email=${encodeURIComponent(email)}`;
+
+      // Create HTML with activation link
+      const emailHtml = instructionData.html + `
+        <div style="background: #10b981; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="color: white; margin: 0 0 10px 0;"><strong>Quick Activation (Recommended)</strong></p>
+          <a href="${activationLink}" style="background: white; color: #10b981; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Activate Pro Now</a>
+          <p style="color: white; font-size: 12px; margin: 10px 0 0 0;">Click to instantly activate your subscription</p>
+        </div>
+      `;
+
       // Try to send email, but don't fail if not configured
       let emailSent = false;
       let emailMessage = "";
@@ -345,7 +357,7 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
             from: process.env.GMAIL_USER,
             to: email,
             subject: `Office Tools Hub - ${instructionData.title}`,
-            html: instructionData.html,
+            html: emailHtml,
           });
           console.log(`Payment instructions sent to ${email}`);
           emailSent = true;
@@ -375,6 +387,122 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
       res.status(500).json({
         error: error instanceof Error ? error.message : "Failed to process custom payment",
       });
+    }
+  });
+
+  // Activate subscription endpoint (via email link)
+  app.get("/api/activate-subscription", async (req, res) => {
+    try {
+      const { invoice, email } = req.query;
+
+      if (!invoice || !email) {
+        return res.status(400).json({ error: "Missing invoice or email" });
+      }
+
+      const db = getDb();
+      if (!db) {
+        return res.status(500).json({ error: "Database not available" });
+      }
+
+      // Find order
+      const order = await db
+        .select()
+        .from(ordersTable)
+        .where(eq(ordersTable.referenceId, String(invoice)))
+        .limit(1);
+
+      if (!order || order.length === 0) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+
+      const orderData = order[0];
+
+      // Check if already activated
+      const existingSub = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(eq(subscriptionsTable.email, String(email)))
+        .limit(1);
+
+      if (existingSub && existingSub.length > 0) {
+        return res.json({
+          success: true,
+          message: "Already activated!",
+          plan: existingSub[0].planName,
+        });
+      }
+
+      // Create subscription
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+
+      await db.insert(subscriptionsTable).values({
+        email: String(email),
+        planName: orderData.planName,
+        invoiceId: orderData.referenceId,
+        expiresAt: expiryDate,
+        isActive: true,
+      });
+
+      // Update order status
+      await db
+        .update(ordersTable)
+        .set({ status: "completed" })
+        .where(eq(ordersTable.referenceId, String(invoice)));
+
+      res.json({
+        success: true,
+        message: `✅ ${orderData.planName} activated successfully!`,
+        plan: orderData.planName,
+      });
+    } catch (error) {
+      console.error("Activation error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Activation failed",
+      });
+    }
+  });
+
+  // Check user subscription status
+  app.get("/api/check-subscription", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+
+      if (!email) {
+        return res.status(400).json({ plan: "Free" });
+      }
+
+      const db = getDb();
+      if (!db) {
+        return res.json({ plan: "Free" });
+      }
+
+      const subscription = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(eq(subscriptionsTable.email, email))
+        .limit(1);
+
+      if (!subscription || subscription.length === 0) {
+        return res.json({ plan: "Free", email });
+      }
+
+      const sub = subscription[0];
+
+      // Check if expired
+      if (sub.expiresAt && new Date(sub.expiresAt) < new Date()) {
+        return res.json({ plan: "Free", email, message: "Subscription expired" });
+      }
+
+      res.json({
+        plan: sub.planName || "Free",
+        email,
+        activatedAt: sub.activatedAt,
+        expiresAt: sub.expiresAt,
+      });
+    } catch (error) {
+      console.error("Subscription check error:", error);
+      res.json({ plan: "Free" });
     }
   });
 

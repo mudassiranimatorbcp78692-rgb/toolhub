@@ -28,6 +28,19 @@ export const ordersTable = pgTable('orders', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Database table for active subscriptions
+export const subscriptionsTable = pgTable('subscriptions', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  planName: varchar('plan_name').notNull(), // Pro, Enterprise, Free
+  invoiceId: text('invoice_id'), // Link to order
+  activatedAt: timestamp('activated_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at'), // Subscription expiry date
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Template schema for downloadable templates
 export const templateSchema = z.object({
   id: z.string(),
