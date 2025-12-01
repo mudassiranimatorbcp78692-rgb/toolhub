@@ -15,6 +15,7 @@ import ToolCategory from "@/pages/tool-category";
 import Pricing from "@/pages/pricing";
 import Activate from "@/pages/activate";
 import CheckPaymentStatus from "@/pages/check-payment-status";
+import VerifyAccess from "@/pages/verify-access";
 import PendingPayments from "@/pages/admin/pending-payments";
 import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/activate" component={Activate} />
       <Route path="/check-payment" component={CheckPaymentStatus} />
+      <Route path="/verify-access" component={VerifyAccess} />
       <Route path="/admin/payments" component={PendingPayments} />
       <Route path="/contact" component={Contact} />
       <Route path="/terms" component={Terms} />

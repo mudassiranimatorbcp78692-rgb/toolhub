@@ -547,6 +547,53 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
     }
   });
 
+  // Verify subscription status (for users) - Check if email has active Pro
+  app.get("/api/verify-subscription", async (req, res) => {
+    try {
+      const { email } = req.query;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email required", hasAccess: false });
+      }
+
+      const db = getDb();
+      if (!db) {
+        return res.json({ hasAccess: false });
+      }
+
+      const subscription = await db
+        .select()
+        .from(subscriptionsTable)
+        .where(eq(subscriptionsTable.email, String(email).toLowerCase()))
+        .limit(1);
+
+      if (!subscription || subscription.length === 0) {
+        return res.json({
+          hasAccess: false,
+          message: "No active subscription found",
+        });
+      }
+
+      const sub = subscription[0];
+      const now = new Date();
+      const isExpired = sub.expiresAt && new Date(sub.expiresAt) < now;
+
+      res.json({
+        hasAccess: sub.isActive && !isExpired,
+        planName: sub.planName,
+        email: sub.email,
+        activatedAt: sub.activatedAt,
+        expiresAt: sub.expiresAt,
+        daysRemaining: sub.expiresAt 
+          ? Math.ceil((new Date(sub.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          : null,
+      });
+    } catch (error) {
+      console.error("Subscription verification error:", error);
+      res.json({ hasAccess: false });
+    }
+  });
+
   // Check payment status (for users)
   app.get("/api/check-payment-status", async (req, res) => {
     try {
