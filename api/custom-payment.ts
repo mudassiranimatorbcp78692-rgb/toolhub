@@ -65,66 +65,91 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 function getPaymentInstructions(method: string, details: any) {
   const { planName, price, invoiceId, email, name } = details;
 
+  const payoneerEmail = process.env.PAYONEER_EMAIL || 'your-payoneer@email.com';
+  const bankAccountInfo = process.env.BANK_ACCOUNT_INFO || 'Contact support for bank details';
+  const easyPaisaNumber = process.env.EASYPAISA_NUMBER || 'XXX-XXXXXXX';
+  const jazzCashNumber = process.env.JAZZCASH_NUMBER || 'XXX-XXXXXXX';
+
   const instructions: Record<string, string> = {
     payoneer_direct: `
-Send payment of $${price} USD to our Payoneer account.
+PAYONEER PAYMENT INSTRUCTIONS
+================================
 Invoice: ${invoiceId}
-Amount: $${price}
-Plan: ${planName}
+Amount: $${price} USD
+Plan: ${planName} Subscription
+Customer: ${name} (${email})
+
+SEND PAYMENT TO:
+Email: ${payoneerEmail}
 
 After payment, reply to this email with:
-- Screenshot of payment
-- Invoice ID: ${invoiceId}
-- Email: ${email}
+✓ Screenshot/proof of payment
+✓ Invoice ID: ${invoiceId}
+✓ Your email: ${email}
 
-We'll activate your ${planName} plan within 2 hours.
+Your ${planName} plan will be activated within 2 hours of confirmation.
     `,
     bank_transfer: `
-Bank Transfer Details:
+BANK TRANSFER INSTRUCTIONS
+============================
 Invoice: ${invoiceId}
-Amount: $${price}
-Plan: ${planName}
-
-Please provide bank transfer details on request.
-Reply to this email to request account information.
-
 Amount: $${price} USD
-Recipient: Office Tools Hub
+Plan: ${planName} Subscription
+Customer: ${name} (${email})
+
+BANK DETAILS:
+${bankAccountInfo}
+
 Reference: ${invoiceId}
 
-After transfer, reply with transaction ID.
+After transfer, reply with:
+✓ Transaction ID
+✓ Screenshot of receipt
+✓ Invoice ID: ${invoiceId}
+
+Your ${planName} plan will be activated within 2 hours of confirmation.
     `,
     easypaisa: `
-EasyPaisa Payment:
+EASYPAISA PAYMENT INSTRUCTIONS
+================================
 Invoice: ${invoiceId}
-Amount: $${price} USD (equivalent in PKR)
-Plan: ${planName}
+Amount: $${price} USD (equivalent PKR)
+Plan: ${planName} Subscription
+Customer: ${name} (${email})
 
-Send payment to: [Your EasyPaisa Account]
-Reference: ${invoiceId}
+SEND PAYMENT TO:
+Account Number: ${easyPaisaNumber}
 
-After payment:
-1. Screenshot the transaction
-2. Reply with transaction ID
-3. Provide your email: ${email}
+STEPS:
+1. Send $${price} equivalent (PKR) to: ${easyPaisaNumber}
+2. Reference: ${invoiceId}
+3. Reply to this email with:
+   - Screenshot of transaction
+   - Transaction reference
+   - Your email: ${email}
 
-Plan will be activated within 2 hours.
+Your ${planName} plan will be activated within 2 hours of confirmation.
     `,
     jazzcash: `
-JazzCash Payment:
+JAZZCASH PAYMENT INSTRUCTIONS
+==============================
 Invoice: ${invoiceId}
-Amount: $${price} USD (equivalent in PKR)
-Plan: ${planName}
+Amount: $${price} USD (equivalent PKR)
+Plan: ${planName} Subscription
+Customer: ${name} (${email})
 
-Send payment to: [Your JazzCash Account]
-Reference: ${invoiceId}
+SEND PAYMENT TO:
+Account Number: ${jazzCashNumber}
 
-After payment:
-1. Screenshot the transaction
-2. Reply with transaction ID
-3. Confirm your email: ${email}
+STEPS:
+1. Send $${price} equivalent (PKR) to: ${jazzCashNumber}
+2. Reference: ${invoiceId}
+3. Reply to this email with:
+   - Screenshot of transaction
+   - Transaction reference
+   - Your email: ${email}
 
-Plan will be activated within 2 hours.
+Your ${planName} plan will be activated within 2 hours of confirmation.
     `,
   };
 

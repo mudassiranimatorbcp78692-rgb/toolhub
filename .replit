@@ -44,7 +44,3 @@ CHECKOUT_MERCHANT_ID = "255801704351"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 42747
-externalPort = 3000
