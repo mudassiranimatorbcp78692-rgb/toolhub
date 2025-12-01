@@ -33,7 +33,7 @@ export default function PendingPayments() {
   }, []);
 
   const handleLogin = () => {
-    if (adminKey === process.env.REACT_APP_ADMIN_KEY || adminKey === "admin123") {
+    if (adminKey === "admin123") {
       setAuthenticated(true);
       localStorage.setItem("adminKey", adminKey);
       loadPayments(adminKey);
