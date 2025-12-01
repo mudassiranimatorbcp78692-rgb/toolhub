@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X } from "lucide-react";
+import { Moon, Sun, Menu, X, Star } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useState } from "react";
+import { MyAccountModal } from "@/components/my-account-modal";
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();
@@ -64,6 +65,8 @@ export function Navbar() {
                 <Moon className="h-5 w-5" />
               )}
             </Button>
+
+            <MyAccountModal />
 
             <Link href="/pricing">
               <div className="hidden md:inline-flex">

@@ -50,3 +50,7 @@ DOMAIN = "https://c5862050-33b7-4143-97b1-202e6fc17b96-00-37eolqgskuebn.sisko.re
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 36415
+externalPort = 3000

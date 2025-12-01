@@ -481,32 +481,70 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
           <p>Your payment has been verified and your <strong>${orderData.planName}</strong> subscription is now <strong>ACTIVE</strong>!</p>
           
           <div style="background: #10b981; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-            <h3 style="margin-top: 0;">Your subscription is ready to use</h3>
+            <h3 style="margin-top: 0;">✨ Your Pro Access is Ready! ✨</h3>
             <p>Email: <strong>${orderData.customerEmail}</strong></p>
-            <a href="${verificationUrl}" style="background: white; color: #10b981; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 10px;">Verify & Access Tools</a>
+            <p style="margin: 10px 0;">Subscription: <strong>${orderData.planName}</strong></p>
           </div>
 
           <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">What you get:</h3>
-            <ul>
-              <li>All premium tools with priority access</li>
-              <li>50MB file size limit (Enterprise: Unlimited)</li>
-              <li>Lightning fast processing</li>
-              <li>Priority email support</li>
-            </ul>
+            <h3 style="margin-top: 0;">📱 How to Access Your Pro Tools:</h3>
+            <ol style="margin: 10px 0; padding-left: 20px;">
+              <li style="margin: 8px 0;">
+                <strong>Go to Office Tools Hub website</strong>
+              </li>
+              <li style="margin: 8px 0;">
+                <strong>Click "My Account" button</strong> (top right of the page, next to "Go Pro")
+              </li>
+              <li style="margin: 8px 0;">
+                <strong>Enter your email:</strong> <code style="background: white; padding: 2px 6px; border-radius: 3px;">${orderData.customerEmail}</code>
+              </li>
+              <li style="margin: 8px 0;">
+                <strong>Click "Check Access"</strong>
+              </li>
+              <li style="margin: 8px 0;">
+                <strong>Boom! 🎉</strong> You'll see: <span style="color: #10b981; font-weight: bold;">✅ Pro Access Active!</span>
+              </li>
+            </ol>
           </div>
 
           <div style="background: #fef3c7; border: 1px solid #fbbf24; padding: 12px; border-radius: 6px; margin: 20px 0;">
-            <p style="margin: 0; font-size: 12px; color: #92400e;">
-              <strong>Can't access email?</strong> Visit <br>
-              <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">
-                ${verificationUrl}
-              </code>
+            <p style="margin: 0; font-size: 13px; color: #92400e;">
+              <strong>💡 Quick Tip:</strong> That's it! Your Pro status is instantly available. Just click "My Account" anytime to verify your subscription.
             </p>
           </div>
 
-          <p style="color: #666; font-size: 12px;">
-            © 2025 Office Tools Hub. Thank you for supporting us!
+          <div style="background: #ede9fe; border: 1px solid #c4b5fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #6d28d9;">📋 What You Get:</h3>
+            <ul style="margin: 10px 0; padding-left: 20px; color: #6d28d9;">
+              <li>✨ All premium tools with priority access</li>
+              <li>📁 ${orderData.planName === 'Enterprise' ? 'Unlimited' : '50MB'} file size limit</li>
+              <li>⚡ Lightning fast processing</li>
+              <li>💬 Priority email support</li>
+              <li>🔄 Regular feature updates</li>
+            </ul>
+          </div>
+
+          <div style="background: #f0fdf4; border: 1px solid #86efac; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #166534;">🔐 Your Pro Status:</h3>
+            <p style="margin: 8px 0; color: #166534;">
+              Your Pro status is tied to your email: <strong>${orderData.customerEmail}</strong>
+            </p>
+            <p style="margin: 8px 0; color: #166534; font-size: 12px;">
+              You can check your access anytime by clicking "My Account" → Enter this email → See your status instantly
+            </p>
+          </div>
+
+          <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 12px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 12px; color: #7f1d1d;">
+              <strong>❓ Can't see your Pro status?</strong> Make sure you're entering the same email: <strong>${orderData.customerEmail}</strong>
+            </p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+
+          <p style="color: #666; font-size: 12px; text-align: center;">
+            Need help? Reply to this email or visit our support page.<br>
+            © 2025 Office Tools Hub. Thank you for supporting us! 🙌
           </p>
         </div>
       `;
