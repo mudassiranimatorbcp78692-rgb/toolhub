@@ -26,7 +26,6 @@ export default function PdfToJpg() {
         description: `Your plan allows max ${planLimits.maxFileSize}MB. This file is ${fileSizeMB.toFixed(2)}MB. Upgrade to Pro (50MB) or Enterprise (Unlimited)`,
         variant: "destructive",
       });
-      // Don't set file - block it completely
       return;
     }
     setFile(selectedFile);
@@ -78,6 +77,7 @@ export default function PdfToJpg() {
           const renderTask = page.render({
             canvasContext: context,
             viewport: viewport,
+            canvas: canvas,
           });
 
           await renderTask.promise;

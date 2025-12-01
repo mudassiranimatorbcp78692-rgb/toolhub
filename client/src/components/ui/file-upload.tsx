@@ -34,12 +34,11 @@ export function FileUpload({
 
   const validateFile = (file: File): boolean => {
     const fileSizeMB = file.size / (1024 * 1024);
-    const maxAllowed = parseFloat(maxSizeMB.toString());
+    const maxAllowed = maxSizeMB ? parseFloat(maxSizeMB.toString()) : 10;
     
     if (fileSizeMB > maxAllowed) {
       const errorMsg = `File is ${fileSizeMB.toFixed(2)}MB but max allowed is ${maxAllowed}MB`;
       setError(errorMsg);
-      console.error('File validation failed:', errorMsg);
       return false;
     }
     setError("");
