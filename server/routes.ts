@@ -466,43 +466,60 @@ Sitemap: https://officetoolshub.com/sitemap.xml`;
           sql`${ordersTable.referenceId} = ${invoiceId} OR ${ordersTable.checkoutSessionId} = ${invoiceId}`
         );
 
-      // Send activation email
+      // Send activation email (with or without Gmail)
+      const verificationUrl = `${process.env.DOMAIN || 'http://localhost:5000'}/verify-access?email=${encodeURIComponent(orderData.customerEmail)}`;
+      
+      const emailContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>🎉 Subscription Activated!</h2>
+          <p>Hello ${orderData.customerName},</p>
+          <p>Your payment has been verified and your <strong>${orderData.planName}</strong> subscription is now <strong>ACTIVE</strong>!</p>
+          
+          <div style="background: #10b981; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <h3 style="margin-top: 0;">Your subscription is ready to use</h3>
+            <p>Email: <strong>${orderData.customerEmail}</strong></p>
+            <a href="${verificationUrl}" style="background: white; color: #10b981; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 10px;">Verify & Access Tools</a>
+          </div>
+
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">What you get:</h3>
+            <ul>
+              <li>All premium tools with priority access</li>
+              <li>50MB file size limit (Enterprise: Unlimited)</li>
+              <li>Lightning fast processing</li>
+              <li>Priority email support</li>
+            </ul>
+          </div>
+
+          <div style="background: #fef3c7; border: 1px solid #fbbf24; padding: 12px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 12px; color: #92400e;">
+              <strong>Can't access email?</strong> Visit <br>
+              <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">
+                ${verificationUrl}
+              </code>
+            </p>
+          </div>
+
+          <p style="color: #666; font-size: 12px;">
+            © 2025 Office Tools Hub. Thank you for supporting us!
+          </p>
+        </div>
+      `;
+
       if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
         try {
           await transporter.sendMail({
             from: process.env.GMAIL_USER,
             to: orderData.customerEmail,
-            subject: "✅ Office Tools Hub - Subscription Activated!",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2>🎉 Subscription Activated!</h2>
-                <p>Hello ${orderData.customerName},</p>
-                <p>Your payment has been verified and your <strong>${orderData.planName}</strong> subscription is now <strong>ACTIVE</strong>!</p>
-                
-                <div style="background: #10b981; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                  <h3 style="margin-top: 0;">Your subscription is ready to use</h3>
-                  <a href="${process.env.DOMAIN || 'http://localhost:5000'}/tools" style="background: white; color: #10b981; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Start Using Tools</a>
-                </div>
-
-                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="margin-top: 0;">What you get:</h3>
-                  <ul>
-                    <li>All premium tools with priority access</li>
-                    <li>50MB file size limit (Enterprise: Unlimited)</li>
-                    <li>Lightning fast processing</li>
-                    <li>Priority email support</li>
-                  </ul>
-                </div>
-
-                <p style="color: #666; font-size: 12px;">
-                  © 2025 Office Tools Hub. Thank you for supporting us!
-                </p>
-              </div>
-            `,
+            subject: "✅ Office Tools Hub - Subscription Activated! 🎉",
+            html: emailContent,
           });
+          console.log(`Activation email sent to ${orderData.customerEmail}`);
         } catch (emailErr) {
           console.error("Failed to send activation email:", emailErr);
         }
+      } else {
+        console.log(`⚠️ Gmail not configured. User ${orderData.customerEmail} should use verification link: ${verificationUrl}`);
       }
 
       res.json({

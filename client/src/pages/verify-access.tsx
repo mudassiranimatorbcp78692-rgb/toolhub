@@ -1,28 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertCircle, Clock } from "lucide-react";
 
 export default function VerifyAccess() {
+  const [location] = useLocation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
-  const verifyAccess = async () => {
-    if (!email) {
-      alert("Please enter your email");
-      return;
+  // Auto-check if email is in URL query
+  useEffect(() => {
+    const params = new URLSearchParams(location.split("?")[1] || "");
+    const emailParam = params.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
+      checkAccessForEmail(emailParam);
     }
+  }, [location]);
 
+  const checkAccessForEmail = async (emailToCheck: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
+      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(emailToCheck)}`);
       const data = await response.json();
       setResult(data);
     } catch (error) {
       setResult({ hasAccess: false, error: "Failed to verify" });
     }
     setLoading(false);
+  };
+
+  const verifyAccess = async () => {
+    if (!email) {
+      alert("Please enter your email");
+      return;
+    }
+    await checkAccessForEmail(email);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
