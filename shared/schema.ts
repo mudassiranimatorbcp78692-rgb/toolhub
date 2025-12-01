@@ -20,9 +20,11 @@ export const ordersTable = pgTable('orders', {
   customerEmail: text('customer_email').notNull(),
   customerName: text('customer_name'),
   paymentMethod: varchar('payment_method').notNull(),
-  status: varchar('status').default('pending').notNull(),
+  status: varchar('status').default('pending').notNull(), // pending, pending_manual, completed, failed
   checkoutSessionId: text('checkout_session_id'),
-  referenceId: text('reference_id'),
+  referenceId: text('reference_id'), // Invoice ID or 2Checkout ref
+  invoiceId: text('invoice_id'),
+  expiresAt: timestamp('expires_at'), // Subscription expiry
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

@@ -17,6 +17,7 @@ export default function Pricing() {
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [customerEmail, setCustomerEmail] = useState<string>("");
   const [customerName, setCustomerName] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
   const plans = [
@@ -74,8 +75,11 @@ export default function Pricing() {
   ];
 
   const paymentMethods = [
-    { id: "visa", name: "Visa Card", icon: "💳" },
-    { id: "payoneer", name: "Payoneer", icon: "💰" },
+    { id: "visa", name: "Visa Card", icon: "💳", category: "2Checkout" },
+    { id: "payoneer_direct", name: "Payoneer Transfer", icon: "💰", category: "Direct Payment" },
+    { id: "bank_transfer", name: "Bank Transfer", icon: "🏦", category: "Direct Payment" },
+    { id: "easypaisa", name: "EasyPaisa", icon: "📱", category: "Pakistan" },
+    { id: "jazzcash", name: "JazzCash", icon: "📱", category: "Pakistan" },
   ];
 
   const handlePlanSelection = (planName: string) => {
@@ -100,43 +104,74 @@ export default function Pricing() {
       return;
     }
 
+    setIsProcessing(true);
     try {
       // Get plan details
       const plan = plans.find(p => p.name === selectedPlan);
       if (!plan) return;
 
-      // Call 2Checkout checkout endpoint
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planName: selectedPlan,
-          price: plan.price.replace("$", ""),
-          email: customerEmail,
-          name: customerName,
-          paymentMethod: selectedPayment,
-        }),
-      });
+      const isDirectPayment = ["payoneer_direct", "bank_transfer", "easypaisa", "jazzcash"].includes(selectedPayment);
 
-      const data = await response.json();
-
-      if (data.success && data.checkoutUrl) {
-        // Redirect to 2Checkout
-        window.location.href = data.checkoutUrl;
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to initiate checkout",
-          variant: "destructive",
+      if (isDirectPayment) {
+        // Handle direct payment (custom payment method)
+        const response = await fetch("/api/custom-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planName: selectedPlan,
+            price: plan.price.replace("$", ""),
+            email: customerEmail,
+            name: customerName,
+            paymentMethod: selectedPayment,
+          }),
         });
+
+        const data = await response.json();
+
+        if (data.success) {
+          toast({
+            title: "Payment Instructions Sent",
+            description: `Invoice #${data.invoiceId} sent to ${customerEmail}. Please follow the payment instructions.`,
+          });
+          setSelectedPlan(null);
+          setSelectedPayment(null);
+          setCustomerEmail("");
+          setCustomerName("");
+        } else {
+          throw new Error(data.error || "Failed to create payment order");
+        }
+      } else {
+        // Handle 2Checkout payment
+        const response = await fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planName: selectedPlan,
+            price: plan.price.replace("$", ""),
+            email: customerEmail,
+            name: customerName,
+            paymentMethod: selectedPayment,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.checkoutUrl) {
+          // Redirect to 2Checkout
+          window.location.href = data.checkoutUrl;
+        } else {
+          throw new Error(data.error || "Failed to initiate checkout");
+        }
       }
     } catch (error) {
-      console.error("Checkout error:", error);
+      console.error("Payment error:", error);
       toast({
         title: "Error",
-        description: "Failed to process payment",
+        description: error instanceof Error ? error.message : "Failed to process payment",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -238,29 +273,30 @@ export default function Pricing() {
 
               <div>
                 <label className="text-sm font-medium">Select Payment Method *</label>
-                <div className="space-y-2 mt-2">
-                  {paymentMethods.map((method) => (
-                    <div
-                      key={method.id}
-                      onClick={() => setSelectedPayment(method.id)}
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        selectedPayment === method.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover-elevate"
-                      }`}
-                      data-testid={`payment-method-${method.id}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">{method.icon}</div>
-                        <div>
-                          <p className="font-semibold">{method.name}</p>
-                          {method.id === "visa" && (
-                            <p className="text-xs text-muted-foreground">Credit/Debit Card</p>
-                          )}
-                          {method.id === "payoneer" && (
-                            <p className="text-xs text-muted-foreground">Digital Wallet</p>
-                          )}
-                        </div>
+                <div className="space-y-3 mt-2">
+                  {["2Checkout", "Direct Payment", "Pakistan"].map((category) => (
+                    <div key={category}>
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">{category}</p>
+                      <div className="space-y-2">
+                        {paymentMethods
+                          .filter((m) => m.category === category)
+                          .map((method) => (
+                            <div
+                              key={method.id}
+                              onClick={() => setSelectedPayment(method.id)}
+                              className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                selectedPayment === method.id
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover-elevate"
+                              }`}
+                              data-testid={`payment-method-${method.id}`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="text-xl">{method.icon}</div>
+                                <p className="font-medium text-sm">{method.name}</p>
+                              </div>
+                            </div>
+                          ))}
                       </div>
                     </div>
                   ))}
@@ -272,11 +308,11 @@ export default function Pricing() {
               <Button
                 className="w-full"
                 onClick={handlePaymentConfirm}
-                disabled={!selectedPayment || !customerEmail || !customerName}
+                disabled={!selectedPayment || !customerEmail || !customerName || isProcessing}
                 data-testid="button-confirm-payment"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
-                Proceed to Payment
+                {isProcessing ? "Processing..." : "Proceed to Payment"}
               </Button>
               <Button
                 variant="outline"
