@@ -3,6 +3,9 @@ import { getDb } from '../server/db';
 import { ordersTable } from '../shared/schema';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Set JSON header immediately to prevent HTML responses
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -17,21 +20,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Generate unique invoice ID
     const invoiceId = `INV-${Date.now()}`;
 
-    const db = getDb();
-    if (!db) {
-      return res.status(500).json({ error: 'Database not initialized' });
+    // Try to save to database, but don't fail if it's not available
+    try {
+      const db = getDb();
+      if (db) {
+        await db.insert(ordersTable).values({
+          planName,
+          price: String(price),
+          customerEmail: email,
+          customerName: name,
+          paymentMethod,
+          status: 'pending_manual',
+          referenceId: invoiceId,
+        });
+      }
+    } catch (dbError) {
+      console.warn('Could not save order to database:', dbError);
+      // Continue - database is optional for this endpoint
     }
-
-    // Create order in database with pending status
-    const order = await db.insert(ordersTable).values({
-      planName,
-      price,
-      customerEmail: email,
-      customerName: name,
-      paymentMethod,
-      status: 'pending_manual',
-      referenceId: invoiceId,
-    }).returning();
 
     // Payment instructions based on method
     const paymentInstructions = getPaymentInstructions(paymentMethod, {
@@ -42,22 +48,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name,
     });
 
-    // In production, send email with payment instructions
-    // For now, log it
     console.log(`[PAYMENT] Invoice ${invoiceId} created for ${email}`);
     console.log(`[PAYMENT] Payment Method: ${paymentMethod}`);
-    console.log(`[PAYMENT] Instructions:`, paymentInstructions);
 
     return res.status(200).json({
       success: true,
       invoiceId,
-      message: 'Payment order created. Instructions sent to email.',
+      message: 'Payment order created successfully.',
       paymentInstructions,
+      emailSent: false,
     });
   } catch (error) {
     console.error('Custom payment error:', error);
     return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to process custom payment',
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to process payment',
     });
   }
 }

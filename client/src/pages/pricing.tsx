@@ -132,7 +132,21 @@ export default function Pricing() {
           }),
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const text = await response.text();
+        if (!text) {
+          throw new Error('Empty response from server');
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+        }
 
         if (data.success) {
           setPaymentInstructions({
@@ -162,7 +176,21 @@ export default function Pricing() {
           }),
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const text = await response.text();
+        if (!text) {
+          throw new Error('Empty response from server');
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+        }
 
         if (data.success && data.checkoutUrl) {
           // Redirect to 2Checkout
@@ -174,8 +202,8 @@ export default function Pricing() {
     } catch (error) {
       console.error("Payment error:", error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process payment",
+        title: "❌ Payment Error",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
         variant: "destructive",
       });
     } finally {
