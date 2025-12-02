@@ -1,11 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb } from '../server/db';
-import { ordersTable } from '../shared/schema';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set JSON header immediately to prevent HTML responses
   res.setHeader('Content-Type', 'application/json');
-  
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).json({ success: true });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -20,10 +25,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Generate unique invoice ID
     const invoiceId = `INV-${Date.now()}`;
 
-    // Try to save to database, but don't fail if it's not available
+    // Try to save to database if available
     try {
-      const db = getDb();
-      if (db) {
+      if (process.env.DATABASE_URL) {
+        const postgres = (await import('postgres')).default;
+        const { drizzle } = await import('drizzle-orm/postgres-js');
+        const { pgTable, text, varchar, timestamp, serial } = await import('drizzle-orm/pg-core');
+
+        const ordersTable = pgTable('orders', {
+          id: serial('id').primaryKey(),
+          planName: text('plan_name').notNull(),
+          price: varchar('price').notNull(),
+          customerEmail: varchar('customer_email').notNull(),
+          customerName: varchar('customer_name').notNull(),
+          paymentMethod: varchar('payment_method').notNull(),
+          status: varchar('status').notNull().default('pending_manual'),
+          referenceId: varchar('reference_id'),
+          createdAt: timestamp('created_at').defaultNow().notNull(),
+        });
+
+        const client = postgres(process.env.DATABASE_URL);
+        const db = drizzle(client, { schema: { ordersTable } });
+
         await db.insert(ordersTable).values({
           planName,
           price: String(price),
@@ -33,10 +56,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: 'pending_manual',
           referenceId: invoiceId,
         });
+
+        await client.end();
       }
     } catch (dbError) {
       console.warn('Could not save order to database:', dbError);
-      // Continue - database is optional for this endpoint
+      // Continue - database is optional
     }
 
     // Payment instructions based on method
@@ -48,8 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name,
     });
 
-    console.log(`[PAYMENT] Invoice ${invoiceId} created for ${email}`);
-    console.log(`[PAYMENT] Payment Method: ${paymentMethod}`);
+    console.log(`[PAYMENT] Invoice ${invoiceId} created for ${email} via ${paymentMethod}`);
 
     return res.status(200).json({
       success: true,
