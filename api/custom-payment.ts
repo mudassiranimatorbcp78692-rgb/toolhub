@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Set JSON header immediately to prevent HTML responses
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -22,25 +21,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Generate unique invoice ID
     const invoiceId = `INV-${Date.now()}`;
 
-    // Try to save to database if available
+    // Try to save to database if available, but don't fail if it doesn't work
     try {
       if (process.env.DATABASE_URL) {
         const postgres = (await import('postgres')).default;
         const { drizzle } = await import('drizzle-orm/postgres-js');
         const { pgTable, text, varchar, timestamp, serial } = await import('drizzle-orm/pg-core');
 
+        // Use exact schema from shared/schema.ts
         const ordersTable = pgTable('orders', {
           id: serial('id').primaryKey(),
-          planName: text('plan_name').notNull(),
-          price: varchar('price').notNull(),
-          customerEmail: varchar('customer_email').notNull(),
-          customerName: varchar('customer_name').notNull(),
+          planName: varchar('plan_name').notNull(),
+          price: text('price').notNull(),
+          customerEmail: text('customer_email').notNull(),
+          customerName: text('customer_name'),
           paymentMethod: varchar('payment_method').notNull(),
-          status: varchar('status').notNull().default('pending_manual'),
-          referenceId: varchar('reference_id'),
+          status: varchar('status').default('pending').notNull(),
+          checkoutSessionId: text('checkout_session_id'),
+          referenceId: text('reference_id'),
           createdAt: timestamp('created_at').defaultNow().notNull(),
         });
 
@@ -51,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           planName,
           price: String(price),
           customerEmail: email,
-          customerName: name,
+          customerName: name || null,
           paymentMethod,
           status: 'pending_manual',
           referenceId: invoiceId,
@@ -60,11 +60,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await client.end();
       }
     } catch (dbError) {
-      console.warn('Could not save order to database:', dbError);
-      // Continue - database is optional
+      console.warn('Note: Could not save order to database:', dbError);
     }
 
-    // Payment instructions based on method
     const paymentInstructions = getPaymentInstructions(paymentMethod, {
       planName,
       price,
@@ -73,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name,
     });
 
-    console.log(`[PAYMENT] Invoice ${invoiceId} created for ${email} via ${paymentMethod}`);
+    console.log(`[PAYMENT] Invoice ${invoiceId} created for ${email}`);
 
     return res.status(200).json({
       success: true,
@@ -83,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       emailSent: false,
     });
   } catch (error) {
-    console.error('Custom payment error:', error);
+    console.error('Payment error:', error);
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to process payment',
@@ -93,94 +91,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 function getPaymentInstructions(method: string, details: any) {
   const { planName, price, invoiceId, email, name } = details;
-
   const payoneerEmail = process.env.PAYONEER_EMAIL || 'your-payoneer@email.com';
   const bankAccountInfo = process.env.BANK_ACCOUNT_INFO || 'Contact support for bank details';
   const easyPaisaNumber = process.env.EASYPAISA_NUMBER || 'XXX-XXXXXXX';
   const jazzCashNumber = process.env.JAZZCASH_NUMBER || 'XXX-XXXXXXX';
 
   const instructions: Record<string, string> = {
-    payoneer_direct: `
-PAYONEER PAYMENT INSTRUCTIONS
-================================
-Invoice: ${invoiceId}
-Amount: $${price} USD
-Plan: ${planName} Subscription
-Customer: ${name} (${email})
-
-SEND PAYMENT TO:
-Email: ${payoneerEmail}
-
-After payment, reply to this email with:
-✓ Screenshot/proof of payment
-✓ Invoice ID: ${invoiceId}
-✓ Your email: ${email}
-
-Your ${planName} plan will be activated within 2 hours of confirmation.
-    `,
-    bank_transfer: `
-BANK TRANSFER INSTRUCTIONS
-============================
-Invoice: ${invoiceId}
-Amount: $${price} USD
-Plan: ${planName} Subscription
-Customer: ${name} (${email})
-
-BANK DETAILS:
-${bankAccountInfo}
-
-Reference: ${invoiceId}
-
-After transfer, reply with:
-✓ Transaction ID
-✓ Screenshot of receipt
-✓ Invoice ID: ${invoiceId}
-
-Your ${planName} plan will be activated within 2 hours of confirmation.
-    `,
-    easypaisa: `
-EASYPAISA PAYMENT INSTRUCTIONS
-================================
-Invoice: ${invoiceId}
-Amount: $${price} USD (equivalent PKR)
-Plan: ${planName} Subscription
-Customer: ${name} (${email})
-
-SEND PAYMENT TO:
-Account Number: ${easyPaisaNumber}
-
-STEPS:
-1. Send $${price} equivalent (PKR) to: ${easyPaisaNumber}
-2. Reference: ${invoiceId}
-3. Reply to this email with:
-   - Screenshot of transaction
-   - Transaction reference
-   - Your email: ${email}
-
-Your ${planName} plan will be activated within 2 hours of confirmation.
-    `,
-    jazzcash: `
-JAZZCASH PAYMENT INSTRUCTIONS
-==============================
-Invoice: ${invoiceId}
-Amount: $${price} USD (equivalent PKR)
-Plan: ${planName} Subscription
-Customer: ${name} (${email})
-
-SEND PAYMENT TO:
-Account Number: ${jazzCashNumber}
-
-STEPS:
-1. Send $${price} equivalent (PKR) to: ${jazzCashNumber}
-2. Reference: ${invoiceId}
-3. Reply to this email with:
-   - Screenshot of transaction
-   - Transaction reference
-   - Your email: ${email}
-
-Your ${planName} plan will be activated within 2 hours of confirmation.
-    `,
+    payoneer_direct: `PAYONEER PAYMENT INSTRUCTIONS\n================================\nInvoice: ${invoiceId}\nAmount: $${price} USD\nPlan: ${planName} Subscription\n\nSEND TO: ${payoneerEmail}\n\nAfter payment, reply with:\n✓ Screenshot of payment\n✓ Invoice ID: ${invoiceId}\n\nYour plan will be activated within 2 hours.`,
+    bank_transfer: `BANK TRANSFER INSTRUCTIONS\n============================\nInvoice: ${invoiceId}\nAmount: $${price} USD\nReference: ${invoiceId}\n\nBANK DETAILS:\n${bankAccountInfo}\n\nAfter transfer, reply with transaction ID and screenshot.`,
+    easypaisa: `EASYPAISA PAYMENT\n=================\nInvoice: ${invoiceId}\nAmount: $${price} USD (PKR equivalent)\n\nSend to: ${easyPaisaNumber}\nReference: ${invoiceId}\n\nReply with screenshot after payment.`,
+    jazzcash: `JAZZCASH PAYMENT\n================\nInvoice: ${invoiceId}\nAmount: $${price} USD (PKR equivalent)\n\nSend to: ${jazzCashNumber}\nReference: ${invoiceId}\n\nReply with screenshot after payment.`,
   };
 
-  return instructions[method] || 'Please contact support for payment instructions.';
+  return instructions[method] || 'Contact support for payment instructions.';
 }
