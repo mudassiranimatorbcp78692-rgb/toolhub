@@ -6,7 +6,9 @@ async function sendPaymentEmail(email: string, name: string, instructions: strin
     const gmailPassword = process.env.GMAIL_APP_PASSWORD;
     
     if (!gmailUser || !gmailPassword) {
-      console.warn('Gmail credentials not configured');
+      console.error('❌ Gmail credentials not configured!');
+      console.error('Required environment variables: GMAIL_USER, GMAIL_APP_PASSWORD');
+      console.error('Set these in your Vercel project settings under Environment Variables');
       return false;
     }
 
@@ -146,6 +148,16 @@ function getPaymentInstructions(method: string, details: any) {
   const bankAccountInfo = process.env.BANK_ACCOUNT_INFO || 'Contact support for bank details';
   const easyPaisaNumber = process.env.EASYPAISA_NUMBER || 'XXX-XXXXXXX';
   const jazzCashNumber = process.env.JAZZCASH_NUMBER || 'XXX-XXXXXXX';
+
+  // Log for debugging
+  console.log('[PAYMENT] Environment variables status:', {
+    hasPayoneer: !!process.env.PAYONEER_EMAIL,
+    hasBank: !!process.env.BANK_ACCOUNT_INFO,
+    hasEasypaisa: !!process.env.EASYPAISA_NUMBER,
+    hasJazzcash: !!process.env.JAZZCASH_NUMBER,
+    payoneerValue: payoneerEmail === 'your-payoneer@email.com' ? 'USING DEFAULT' : 'SET',
+    easyPaisaValue: easyPaisaNumber === 'XXX-XXXXXXX' ? 'USING DEFAULT' : 'SET',
+  });
 
   const instructions: Record<string, string> = {
     payoneer_direct: `PAYONEER PAYMENT INSTRUCTIONS\n================================\nInvoice: ${invoiceId}\nAmount: $${price} USD\nPlan: ${planName} Subscription\n\nSEND TO: ${payoneerEmail}\n\nAfter payment, reply with:\n✓ Screenshot of payment\n✓ Invoice ID: ${invoiceId}\n\nYour plan will be activated within 2 hours.`,
