@@ -340,7 +340,7 @@ export default function Pricing() {
                   placeholder="John Doe"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg mt-1"
+                  className="w-full px-3 py-2 border rounded-lg mt-1 dark:bg-slate-900 dark:text-white dark:border-slate-700 dark:placeholder-slate-400"
                 />
               </div>
               <div>
@@ -350,7 +350,7 @@ export default function Pricing() {
                   placeholder="john@example.com"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg mt-1"
+                  className="w-full px-3 py-2 border rounded-lg mt-1 dark:bg-slate-900 dark:text-white dark:border-slate-700 dark:placeholder-slate-400"
                 />
               </div>
 

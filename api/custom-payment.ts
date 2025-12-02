@@ -1,5 +1,50 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+async function sendPaymentEmail(email: string, name: string, instructions: string, invoiceId: string) {
+  try {
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPassword = process.env.GMAIL_APP_PASSWORD;
+    
+    if (!gmailUser || !gmailPassword) {
+      console.warn('Gmail credentials not configured');
+      return false;
+    }
+
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.default.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailUser,
+        pass: gmailPassword,
+      },
+    });
+
+    await transporter.sendMail({
+      from: gmailUser,
+      to: email,
+      subject: `Payment Instructions - Invoice #${invoiceId}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Payment Instructions</h2>
+          <p>Hello ${name},</p>
+          <p>Thank you for choosing our service! Below are your payment instructions:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; white-space: pre-wrap; font-family: monospace; margin: 20px 0;">
+${instructions}
+          </div>
+          <p style="color: #666; font-size: 12px;">Invoice ID: <strong>${invoiceId}</strong></p>
+          <p style="color: #666; font-size: 12px;">If you have any questions, please contact our support team.</p>
+        </div>
+      `,
+    });
+
+    console.log(`✉️  Payment instructions sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return false;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -71,14 +116,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name,
     });
 
-    console.log(`[PAYMENT] Invoice ${invoiceId} created for ${email}`);
+    // Send email with payment instructions
+    const emailSent = await sendPaymentEmail(email, name, paymentInstructions, invoiceId);
+
+    // Convert instructions to HTML for display
+    const instructionsHtml = `<pre style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; white-space: pre-wrap; word-wrap: break-word; font-family: monospace;">${paymentInstructions}</pre>`;
+
+    console.log(`[PAYMENT] Invoice ${invoiceId} created for ${email}${emailSent ? ' (email sent)' : ''}`);
 
     return res.status(200).json({
       success: true,
       invoiceId,
-      message: 'Payment order created successfully.',
-      paymentInstructions,
-      emailSent: false,
+      message: emailSent ? '✅ Payment instructions sent to your email!' : '📋 Please follow the payment instructions below:',
+      paymentInstructions: instructionsHtml,
+      emailSent,
     });
   } catch (error) {
     console.error('Payment error:', error);
